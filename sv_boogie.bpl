@@ -13,16 +13,29 @@ function has_small_elements(arr: [int]int): bool
 }
 
 // Sorts 'a' using bucket sort or quick sort, as determined by has_small_elements(a)
-procedure sort() returns ()
+procedure sort() returns (perm : [int]int)
   modifies a;
+  // perm is a permutation
+  ensures (forall i: int :: 0 <= i && i <= N-1 ==> 0 <= perm[i] && perm[i] <= N-1);
+  ensures (forall k, l: int :: 0 <= k && k < l && l <= N-1 ==> perm[k] != perm[l]);
+  // the final array is that permutation of the input array
+  ensures (forall i: int :: 0 <= i && i <= N-1 ==> a[i] == old(a)[perm[i]]);
+  // array is sorted
+  ensures (forall k, l: int :: 0 <= k && k <= l && l <= N-1 ==> a[k] <= a[l]);
+  
 {
-  if (has_small_elements(a))
-  {
-      // sort 'a' using bucket sort
-  } else
-  {
-      // sort 'a' using quick sort
+  
+  if(N > 0) { // array not empty
+    if (has_small_elements(a))
+    {
+        // sort 'a' using bucket sort
+        call perm := bs(0,N-1);
+    } else {
+        // sort 'a' using quick sort
+        call perm := qs(0,N-1);
+    }     
   }
+ 
 }
 
 
@@ -128,26 +141,35 @@ procedure qs(lo : int, hi : int) returns (perm: [int]int)
       call perm_rec := qs(lo, pivot_index - 1);
       // update permutation
       n := lo;
-      while(n <= pivot_index - 1) 
-        // TODO add invariants
+      while(n <= hi) 
         invariant (forall i: int :: lo <= i && i < n ==> lo <= perm[i] && perm[i] <= hi);
         invariant (forall i: int :: n <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
-      { perm[n] := perm[perm_rec[n]];  n := n+1;} 
+        // TODO add invariants
+      { 
+        if(perm[n] < pivot_index) {
+          
+          perm[n] := perm_rec[perm[n]];  
+        }
+        n := n+1;
+      } 
     }     
-           
-           
-           
-    // TODO ignore this branch for now, solution is dual of the left side       
-    assume pivot_index + 1 >= hi;    
     
+    //assume pivot_index + 1 >= hi; // TODO for debugging 
     // we have a non empty right part
     if(pivot_index + 1 < hi) {
       call perm_rec := qs(pivot_index + 1, hi);
-      // update permutation     
-      n := pivot_index + 1;
+         
+      n := lo;
       while(n <= hi) 
+        invariant (forall i: int :: lo <= i && i < n ==> lo <= perm[i] && perm[i] <= hi);
+        invariant (forall i: int :: n <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
         // TODO add invariants
-      { perm[n] := perm[perm_rec[n]];  n := n+1;} 
+      { 
+        if(perm[n] > pivot_index) {
+          perm[n] := perm_rec[perm[n]];  
+        }
+        n := n+1;
+      } 
     }
     
   } else {
@@ -155,9 +177,29 @@ procedure qs(lo : int, hi : int) returns (perm: [int]int)
   }
   
   // TODO prove these
-  //assume (forall i: int :: lo <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
+  
   assume (forall k, l: int :: lo <= k && k < l && l <= hi ==> perm[k] != perm[l]);
   assume (forall i: int :: lo <= i && i <= hi ==> a[i] == old(a)[perm[i]]);
+  
+}
+
+procedure bs(lo : int, hi : int) returns (perm: [int]int) 
+  modifies a;
+  requires lo <= hi;
+  
+  // perm is a permutation
+  ensures (forall i: int :: lo <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
+  ensures (forall k, l: int :: lo <= k && k < l && l <= hi ==> perm[k] != perm[l]);
+  // the final array is that permutation of the input array
+  ensures (forall i: int :: lo <= i && i <= hi ==> a[i] == old(a)[perm[i]]);
+  
+  // array is sorted
+  ensures (forall k, l: int :: lo <= k && k <= l && l <= hi ==> a[k] <= a[l]);
+  
+  // rest of the array is untouched
+  ensures (forall k: int :: k < lo || k > hi ==> a[k] == old(a)[k]);
+{
+  
   
 }
 
