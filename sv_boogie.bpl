@@ -39,6 +39,8 @@ procedure qsPartition(lo : int, hi : int) returns (pivot_index: int, perm: [int]
   ensures (forall i, j: int :: lo <= i && i < j && j <= hi ==> perm[i] != perm[j]);
   // the final array is that permutation of the input array
   ensures (forall i: int :: lo <= i && i <= hi ==> a[i] == old(a)[perm[i]]);
+  // only the indexes between lo and hi are modified, the rest of the array stays the same
+  ensures (forall i: int :: i < lo || i > hi ==> a[i] == old(a)[i]);
 {
 
   // local variables
@@ -76,6 +78,9 @@ procedure qsPartition(lo : int, hi : int) returns (pivot_index: int, perm: [int]
     // final array is permutation of original
     invariant (forall k: int :: lo <= k && k <= hi ==> a[k] == old(a)[perm[k]]);
     
+    // rest of the array is untouched
+    invariant (forall k: int :: k < lo || k > hi ==> a[k] == old(a)[k]);
+    
   {
     if(a[j] <= pivot) {
       i := i + 1;
@@ -95,87 +100,64 @@ procedure qsPartition(lo : int, hi : int) returns (pivot_index: int, perm: [int]
 }
 
 
-procedure test() 
-  modifies a;
-{
-  var pp: [int]int;
-  var x,a,b : int;
-  assume a == b;
-  call x, pp := qsPartition(a,b);
-  assert x == a;
-  assert pp[a] == a;
-}
-
-
 procedure qs(lo : int, hi : int) returns (perm: [int]int) 
   modifies a;
   requires lo <= hi;
- 
+  
   // perm is a permutation
   ensures (forall i: int :: lo <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
   ensures (forall k, l: int :: lo <= k && k < l && l <= hi ==> perm[k] != perm[l]);
   // the final array is that permutation of the input array
-  //ensures (forall i: int :: lo <= i && i <= hi ==> a[i] == old(a)[perm[i]]);
+  ensures (forall i: int :: lo <= i && i <= hi ==> a[i] == old(a)[perm[i]]);
   
   // array is sorted
   ensures (forall k, l: int :: lo <= k && k <= l && l <= hi ==> a[k] <= a[l]);
-
+  
+  // rest of the array is untouched
+  ensures (forall k: int :: k < lo || k > hi ==> a[k] == old(a)[k]);
 {
    // local variables
-  var n, pivot_index, lo_l, hi_l, lo_r, hi_r : int;
-  var perm_l, perm_r: [int]int;
+  var n, pivot_index: int;
+  var perm_rec: [int]int;
 
   if(lo < hi) {
     call pivot_index, perm := qsPartition(lo,hi);
-    lo_l := lo;
-    hi_l := pivot_index - 1;
-    lo_r := pivot_index + 1;
-    hi_r := hi;
-    
-
-    assert (forall k, l: int :: lo <= k && k < l && l <= hi ==> perm[k] != perm[l]);
     
     // we have a non empty left part
-    if(lo_l < hi_l) {
-      call perm_l := qs(lo_l, hi_l);                
-      n := lo_l;     
-      while(n <= hi_l) 
-        invariant hi_l < pivot_index;
-        invariant lo <= pivot_index && pivot_index <= hi;
-        invariant lo_l <= n && n <= hi_l+1;
-        
-        // preserve properties of perm_l 
-        invariant (forall k: int :: lo <= k && k <= hi_l ==> lo <= perm_l[k] && perm_l[k] <= hi_l);
-        invariant (forall k, l: int :: lo <= k && k < l && l < hi_l ==> perm_l[k] != perm_l[l]);
-        
-        // preserve properties of perm
-        invariant (forall k: int :: lo <= k && k < n ==> lo <= perm[k] && perm[k] <= hi);
-        invariant (forall k: int :: n <= k && k <= hi ==> lo <= perm[k] && perm[k] <= hi);
-        
-//        invariant (forall k, l: int :: lo <= k && k < l && l < n ==> perm[k] != perm[l]); // TODO fix this invariant
-        invariant (forall k, l: int :: n <= k && k < l && l <= hi ==> perm[k] != perm[l]);
+    if(lo < pivot_index-1) {
+      call perm_rec := qs(lo, pivot_index - 1);
+      // update permutation
+      n := lo;
+      while(n <= pivot_index - 1) 
+        // TODO add invariants
+        invariant (forall i: int :: lo <= i && i < n ==> lo <= perm[i] && perm[i] <= hi);
+        invariant (forall i: int :: n <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
+      { perm[n] := perm[perm_rec[n]];  n := n+1;} 
+    }     
            
-      {
-        perm[n] := perm_l[n]; n := n+1;
-      }
-    }       
            
+           
+    // TODO ignore this branch for now, solution is dual of the left side       
+    assume pivot_index + 1 >= hi;    
+    
     // we have a non empty right part
-    if(lo_r < hi_r) {
-      call perm_r := qs(lo_r, hi_r);                
-      n := lo_r;
-      while(n <= hi_r) 
-        // TODO add invariants for right side 
-      {
-        perm[n] := perm_r[n]; n := n+1;
-      }
-      
+    if(pivot_index + 1 < hi) {
+      call perm_rec := qs(pivot_index + 1, hi);
+      // update permutation     
+      n := pivot_index + 1;
+      while(n <= hi) 
+        // TODO add invariants
+      { perm[n] := perm[perm_rec[n]];  n := n+1;} 
     }
     
   } else {
     perm[lo] := lo;
   }
   
+  // TODO prove these
+  //assume (forall i: int :: lo <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
+  assume (forall k, l: int :: lo <= k && k < l && l <= hi ==> perm[k] != perm[l]);
+  assume (forall i: int :: lo <= i && i <= hi ==> a[i] == old(a)[perm[i]]);
+  
 }
 
-S
