@@ -2,18 +2,17 @@ note
     description: "Verify the features by adding the missing loop invariants and postconditions."
 
 class
-	SV_AUTOPROOF
+    SV_AUTOPROOF
 
 feature
 
-	lst: SIMPLE_ARRAY [INTEGER]
+    lst: SIMPLE_ARRAY [INTEGER]
 
 feature
-        
-        -- OK
-	wipe (x: SIMPLE_ARRAY [INTEGER])
-	    note
-	    	explicit: wrapping
+
+    wipe (x: SIMPLE_ARRAY [INTEGER])
+        note
+            explicit: wrapping
 		require
 			x /= Void
 			modify (x)
@@ -25,8 +24,7 @@ feature
 			invariant
 				x.is_wrapped
 				x.count = x.count.old_
-                                across 1 |..| (k-1) as i all x.sequence [i.item] = 0 end
-
+				across 1 |..| (k-1) as i all x.sequence [i.item] = 0 end
 			until
 				k > x.count
 			loop
@@ -37,10 +35,10 @@ feature
 			x.count = old x.count
 			across 1 |..| x.count as i all x.sequence [i.item] = 0 end
 		end
-		
-        -- OK
-        mod_three (a, b: SIMPLE_ARRAY [INTEGER])
-                note
+
+
+	mod_three (a, b: SIMPLE_ARRAY [INTEGER])
+		note
 			explicit: wrapping
 		require
 			a /= Void
@@ -54,31 +52,29 @@ feature
 		do
 			wipe (a)
 			wipe (b)
-            
 			from
 				k := 1
 			invariant
 				a.is_wrapped and b.is_wrapped
 				a.count = a.count.old_
-                                b.count = b.count.old_
-                                modify(b) -- without this, auto proof cant infere that a isn't modified, fails to proof that b[i] = a[i] + 1 = 1
-                                across 1 |..| (k-1) as i all (i.item \\ 3 = 0) implies b.sequence [i.item] = 1 end
+                modify(b)
+                b.count = b.count.old_
+				across 1 |..| (k-1) as i all (i.item \\ 3 = 0) implies b.sequence [i.item] = 1 end
 			until
 				k > a.count
-			loop            
+			loop
 				if k \\ 3 = 0 then
 					b [k] := a[k] + 1
 				end
 				k := k + 1
 			end
 		ensure
-                    across 1 |..| b.count as i all (i.item \\ 3 = 0) implies b.sequence [i.item] = 1 end
+			across 1 |..| b.count as i all (i.item \\ 3 = 0) implies b.sequence [i.item] = 1 end
 		end
 
 
 feature
-        
-        -- OK
+
 	swap (x, y: INTEGER)
 		note
 			explicit: wrapping
@@ -118,9 +114,17 @@ feature
 			invariant
 				lst.is_wrapped
 				lst.sequence.count = lst.sequence.old_.count
-                                y > x implies 1 <= x and x <= lst.sequence.count and 1 <= y and y <= lst.sequence.count
-                                y = lst.count - x + 1
-                                x > 1 implies lst.sequence[x-1] = lst.sequence.old_[y+1]
+				-- ADD MISSING LOOP INVARIANT(S)
+                
+                y > 0 implies (1 <= x and x <= lst.count and 1 <= y and y <= lst.count)
+                across x |..| y as i all lst.sequence[i.item] = lst.sequence.old_[i.item] end
+                    -- necessary because the "old" are out of sync (swapper's "old" is different from swap's)
+                
+                y = lst.count - x + 1
+                    --necessary for the following two invariants to succeed
+                x > 1 implies across 1 |..| (x-1) as i all lst.sequence[i.item] = lst.sequence.old_[lst.count-i.item + 1] end
+                x > 1 implies across 1 |..| (x-1) as i all lst.sequence[lst.count-i.item+1] = lst.sequence.old_[i.item] end
+                
 			until
 				y <= x
 			loop
@@ -151,6 +155,9 @@ feature
 				Result := False
 			invariant
 				-- ADD MISSING LOOP INVARIANT(S)
+                k > 0 implies (1 <= k and k <= lst.count)
+                Result implies (lst.sequence[k] = v)
+                (not Result) implies (across 1 |..| (lst.count - k) as i all lst.sequence[lst.count - i.item + 1] /= v end)
 			until
 				Result or k < 1
 			loop
@@ -164,8 +171,9 @@ feature
 			end
 		ensure
 			-- ADD MISSING POSTCONDITION(S)
-                    Result = True implies across 1 |..| lst.sequence.count as i some lst.sequence[i.item] = v end
-                    Result = False implies across 1 |..| lst.sequence.count as i all lst.sequence[i.item] /= v end
+            lst.is_wrapped
+            Result implies across 1 |..| lst.count as i some lst.sequence[i.item] = v end
+            (not Result) implies across 1 |..| lst.count as i all lst.sequence[i.item] /= v end
 		end
 
 
@@ -185,8 +193,7 @@ feature
 			invariant
 				is_open
 				inv
-		                zz * y + xx = xx.old_
-
+				zz * y + xx = xx.old_
 			until
 				xx < y
 			loop
@@ -197,13 +204,8 @@ feature
 			zz * y + xx = old xx
 		end
 
-
-
-
-
 feature
-
-
+    
 	paly (a: SIMPLE_ARRAY [INTEGER]): BOOLEAN
 		note
 			explicit: wrapping
@@ -217,7 +219,12 @@ feature
 				y := a.count
 				Result := True
 			invariant
-				-- ADD MISSING LOOP INVARIANT(S)
+				-- ADD MISSING LOOP INVARIANT(S)      
+                y > 0 implies (1 <= x and x <= a.count and 1 <= y and y <= a.count)
+                y = a.count - x + 1
+                    --necessary for the following invariant to succeed
+                (x > 1 and Result) implies across 1 |..| (x-1) as i all a.sequence[i.item] = a.sequence[a.count-i.item + 1] end
+                (not Result) implies across 1 |..| a.count as i some a.sequence[i.item] /= a.sequence[a.count-i.item + 1] end
 			until
 				x >= y or not Result
 			loop
@@ -230,8 +237,8 @@ feature
 				y - x
 			end
 		ensure
-			-- ADD MISSING POSTCONDITION(S)
-                        Result = across 1 |..| a.sequence.count as i all a.sequence[i.item] = a.sequence[a.sequence.count - i.item + 1]
+            Result implies across 1 |..| a.count as i all a.sequence[i.item] = a.sequence[a.count-i.item + 1] end
+            (not Result) implies across 1 |..| a.count as i some a.sequence[i.item] /= a.sequence[a.count-i.item+1] end
 		end
 
 
