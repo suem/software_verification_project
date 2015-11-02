@@ -157,7 +157,7 @@ feature
 				-- ADD MISSING LOOP INVARIANT(S)
                 k > 0 implies (1 <= k and k <= lst.count)
                 Result implies (lst.sequence[k] = v)
-                (not Result) implies (across 1 |..| (lst.count - k) as i all lst.sequence[lst.count - i.item + 1] /= v end)
+                (not Result) implies (across (k+1) |..| lst.count as i all lst.sequence[i.item] /= v end)
 			until
 				Result or k < 1
 			loop
