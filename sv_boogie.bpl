@@ -183,9 +183,10 @@ procedure qs(lo : int, hi : int) returns (perm: [int]int)
   
 }
 
-procedure bs(lo : int, hi : int) returns (perm: [int]int) 
+procedure bs(lo : int, hi : int) returns (perm: [int]int)
   modifies a;
   requires lo <= hi;
+  requires lo >= 0;
   
   // perm is a permutation
   ensures (forall i: int :: lo <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
@@ -199,7 +200,104 @@ procedure bs(lo : int, hi : int) returns (perm: [int]int)
   // rest of the array is untouched
   ensures (forall k: int :: k < lo || k > hi ==> a[k] == old(a)[k]);
 {
+  //assumption: all values are within the [-3N, 3N] range where N = length of `a'
   
+  //we're using three buckets:
+  var b0: [int]int; //bucket for values [-3N,-1N)
+  var b1: [int]int; //bucket for values [-1N,1N)
+  var b2: [int]int; //bucket for values [1N,3N]
   
+  //buckets' start/end indices
+  var b0_i:int;
+  var b1_i:int;
+  var b2_i:int;
+  
+  //buckets' upper bounds (exclusive)
+  var bound_0:int;
+  var bound_1:int;
+  var bound_2:int;
+  
+  //iterator variables
+  var i,k:int;
+  
+  b0_i := 0;
+  b1_i := 0;
+  b2_i := 0;
+  bound_0 := -N;
+  bound_1 := N;
+  bound_2 := 3*N + 1;
+  
+  i := lo;
+  while(i < hi)
+    invariant (i >= lo && i <= hi);
+    
+    //all previous elements of a have been placed in a bucket
+    invariant(forall e:int :: ((e >= lo && e <i) ==> (exists t:int :: (b0[t] == a[e] || b1[t] == a[e] || b2[t] == a[e]))) );
+    
+    //all buckets contain the correct kind of elements:
+    invariant(forall e:int :: (e >= 0 && e < b0_i) ==> (b0[e] < -N));
+    invariant(forall e:int :: (e >= 0 && e < b1_i) ==> (b1[e] >= -N && b1[e] < N));
+    invariant(forall e:int :: (e >= 0 && e < b2_i) ==> (b2[e] >= N && b2[e] < 3*N + 1));
+    
+    //TODO: more invariants
+    
+    {
+      
+    //add a[i] to correct bucket
+    if(a[i] < bound_1){
+      if(a[i] < bound_0){
+        b0[b0_i] := a[i];
+        b0_i := b0_i + 1;
+      }
+      else{
+        b1[b1_i] := a[i];
+        b1_i := b1_i + 1;
+      }
+    }
+    else{
+      b2[b2_i] := a[i];
+      b2_i := b2_i + 1;
+    }
+    
+    i := i + 1;
+  }
+  
+  //debugging: check all elements have been inserted into a bucket
+  assert(forall e:int :: ((e >= lo && e < hi) ==> (exists t:int :: (b0[t] == a[e] || b1[t] == a[e] || b2[t] == a[e]))));
+  
+  //sort the buckets
+  //TODO (?): call QS to sort b0 for the range [0..(b0_i - 1)]
+  //TODO (?): call QS to sort b1 for the range [0..(b1_i - 1)]
+  //TODO (?): call QS to sort b2 for the range [0..(b2_i - 1)]
+  assume(forall e:int :: ((e > 0 && e < b0_i) ==> (b0[e-1] <= b0[e])));
+  assume(forall e:int :: ((e > 0 && e < b1_i) ==> (b1[e-1] <= b1[e])));
+  assume(forall e:int :: ((e > 0 && e < b2_i) ==> (b2[e-1] <= b2[e])));
+  
+  //TODO (?): keep track of permutations
+  
+  i := lo;
+  while(i < b0_i)
+    //TODO: invariants
+    {
+    a[i] := b0[i];
+    i := i + 1;
+  }
+  
+  k := 0;
+  while(k < b1_i)
+    //TODO: invariants
+    {
+    a[i] := b1[k];
+    i := i + 1;
+    k := k + 1;
+  }
+  
+  k := 0;
+  while(k < b2_i)
+    //TODO: invariants
+    {
+    a[i] := b2[k];
+    i := i + 1;
+    k := k + 1;
+  }
 }
-
