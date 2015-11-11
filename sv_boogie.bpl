@@ -131,56 +131,55 @@ procedure qs(lo : int, hi : int) returns (perm: [int]int)
 {
    // local variables
   var n, pivot_index: int;
-  var perm_rec: [int]int;
+  var perm_comb, perm_left, perm_right: [int]int;
 
   if(lo < hi) {
     call pivot_index, perm := qsPartition(lo,hi);
     
     // we have a non empty left part
-    if(lo < pivot_index-1) {
-      call perm_rec := qs(lo, pivot_index - 1);
-      // update permutation
+    if(lo < pivot_index) {
+      call perm_left := qs(lo, pivot_index - 1);
       n := lo;
-      while(n <= hi) 
-        invariant (forall i: int :: lo <= i && i < n ==> lo <= perm[i] && perm[i] <= hi);
-        invariant (forall i: int :: n <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
-        // TODO add invariants
-      { 
-        if(perm[n] < pivot_index) {
-          
-          perm[n] := perm_rec[perm[n]];  
-        }
-        n := n+1;
-      } 
+      while(n < pivot_index) 
+        invariant lo <= n && n <= pivot_index;
+        invariant (forall i: int :: lo <= i && i < n ==> perm_comb[i] == perm_left[i]);
+        invariant (forall i: int :: lo <= i && i < n ==> lo <= perm_comb[i] && perm_comb[i] < pivot_index);
+        invariant (forall k, l: int :: lo <= k && k < l && l < n ==> perm_comb[k] != perm_comb[l]);
+      { perm_comb[n] := perm_left[n]; }
+     
     }     
     
-    //assume pivot_index + 1 >= hi; // TODO for debugging 
     // we have a non empty right part
-    if(pivot_index + 1 < hi) {
-      call perm_rec := qs(pivot_index + 1, hi);
-         
-      n := lo;
+    if(pivot_index + 1 <= hi) {
+      call perm_right := qs(pivot_index + 1, hi);
+      n := pivot_index + 1;
       while(n <= hi) 
-        invariant (forall i: int :: lo <= i && i < n ==> lo <= perm[i] && perm[i] <= hi);
-        invariant (forall i: int :: n <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
-        // TODO add invariants
-      { 
-        if(perm[n] > pivot_index) {
-          perm[n] := perm_rec[perm[n]];  
-        }
-        n := n+1;
-      } 
+        invariant pivot_index + 1 <= n && n <= hi+1;
+        invariant (forall i: int :: pivot_index + 1 <= i && i < n ==> perm_comb[i] == perm_right[i]);
+        invariant (forall i: int :: pivot_index + 1 <= i && i < n ==> pivot_index + 1 <= perm_comb[i] && perm_comb[i] <= hi);
+        invariant (forall k, l: int :: pivot_index + 1 <= k && k < l && l < n ==> perm_comb[k] != perm_comb[l]);
+      { perm_comb[n] := perm_left[n]; }
     }
+    
+    perm_comb[pivot_index] := pivot_index;
+    // perm_comb is now a permutation
+    assert (forall i: int :: lo <= i && i <= hi ==> lo <= perm_comb[i] && perm_comb[i] <= hi);
+    assert (forall k, l: int :: lo <= k && k < l && l <= hi ==> perm_comb[k] != perm_comb[l]);
+    
+    // assert that perm combined with perm_comb is a permutation
+    n := lo;
+    while(n <= hi) 
+      invariant lo <= n && n <= hi+1;
+      invariant (forall i: int :: lo <= i && i < n ==> perm[i] == perm_comb[perm[i]]);
+      invariant (forall i: int :: lo <= i && i < n ==> lo <= perm[i] && perm[i] <= hi);
+      invariant (forall k, l: int :: lo <= k && k < l && l < n ==> perm[k] != perm[l]);
+      invariant (forall i: int :: lo <= i && i < n ==> a[i] == old(a)[perm[i]]);
+    { perm[n] := perm_comb[perm[n]]; }
     
   } else {
     perm[lo] := lo;
   }
-  
-  // TODO prove these
-  
-  assume (forall k, l: int :: lo <= k && k < l && l <= hi ==> perm[k] != perm[l]);
-  assume (forall i: int :: lo <= i && i <= hi ==> a[i] == old(a)[perm[i]]);
-  
+    
 }
 
 procedure bs(lo : int, hi : int) returns (perm: [int]int)
