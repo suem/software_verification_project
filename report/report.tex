@@ -1,0 +1,60 @@
+\documentclass[a4paper,11pt,titlepage]{article}
+\title{Software Verification Project\\- AS 2015 -}
+\author{Roger Koradi, Samuel Ueltschi\\
+		ETH Z\"urich, Switzerland
+}
+
+\usepackage[utf8]{inputenc}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{hyperref}
+\usepackage[toc,page]{appendix}
+\usepackage{listings} %for source code
+\usepackage[backend=bibtex]{biblatex}   % bibliography
+
+%%Commands
+\lstnewenvironment{eBox}[1][]
+	{\lstset{language=eiffel,frame=single,breaklines=true}}
+	{}
+	
+\lstnewenvironment{eSimple}[1][]
+	{\lstset{language=eiffel,breaklines=true}}
+	{}
+
+\lstnewenvironment{bBox}[1][]
+	{\lstset{language=c,frame=single,breaklines=true}}
+	{}
+	
+\lstnewenvironment{bSimple}[1][]
+	{\lstset{language=c,breaklines=true}}
+	{}
+
+%http://tex.stackexchange.com/questions/59245/how-to-disable-automatic-indent
+\newlength\inLength
+\setlength{\inLength}{\parindent}
+\setlength{\parindent}{0pt}
+\renewcommand{\indent}{\hspace*{\inLength}}
+
+\bibliography{report}
+\begin{document}
+
+\maketitle
+\pagestyle{headings}
+
+\input{abstract}
+\input{section_introduction}
+\pagebreak
+\input{section_autoproof}
+\pagebreak
+\input{section_boogie}
+\pagebreak
+\input{section_autoproof_solution}
+\pagebreak
+\input{section_boogie_solution}
+\pagebreak
+\input{section_conclusion}
+%\pagebreak
+\printbibliography
+\pagebreak
+\input{appendix}
+\pagebreak
+\end{document}
