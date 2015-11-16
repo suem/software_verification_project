@@ -29,7 +29,7 @@ procedure sort() returns (perm : [int]int)
     if (has_small_elements(a))
     {
         // sort 'a' using bucket sort
-        call perm := bs(0,N-1);
+        call perm := bs();
     } else {
         // sort 'a' using quick sort
         call perm := qs(0,N-1);
@@ -37,8 +37,6 @@ procedure sort() returns (perm : [int]int)
   }
  
 }
-
-/*
 
 procedure qsPartition(lo : int, hi : int) returns (pivot_index: int, perm: [int]int) 
   modifies a;
@@ -182,9 +180,7 @@ procedure qs(lo : int, hi : int) returns (perm: [int]int)
     
 }
 
-*/
-
-
+/*
 // dummy sort implementation for faster development times
 procedure qs(lo : int, hi : int) returns (perm: [int]int) 
   modifies a;
@@ -210,6 +206,7 @@ procedure qs(lo : int, hi : int) returns (perm: [int]int)
   // rest of the array is untouched
   assume (forall k: int :: k < lo || k > hi ==> a[k] == old(a)[k]);  
 }
+*/
 
 // dummy sort implementation for faster development times
 procedure qs_b0(lo : int, hi : int) returns (perm: [int]int) 
@@ -261,33 +258,18 @@ procedure qs_b2(lo : int, hi : int) returns (perm: [int]int)
   assume (forall k: int :: k < lo || k > hi ==> b2[k] == old(b2)[k]);  
 }
 
-procedure bs(lo : int, hi : int) returns (perm: [int]int)
+procedure bs() returns (perm: [int]int)
   modifies a, b0, b1, b2;
-  requires lo <= hi;
-  requires lo >= 0;
-  // only use bucket sort when these conditions hols
-  requires (forall i: int :: (0 <= i && i < N) ==> (-3 * N <= a[i] && a[i] <= 3 * N));
-  
   // perm is a permutation
-  ensures (forall i: int :: lo <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
-  ensures (forall k, l: int :: lo <= k && k < l && l <= hi ==> perm[k] != perm[l]);
+  ensures (forall i: int :: 0 <= i && i < N ==> 0 <= perm[i] && perm[i] < N);
+  ensures (forall k, l: int :: 0 <= k && k < l && l < N ==> perm[k] != perm[l]);
   // the final array is that permutation of the input array
-  ensures (forall i: int :: lo <= i && i <= hi ==> a[i] == old(a)[perm[i]]);
-  
+  ensures (forall i: int :: 0 <= i && i < N ==> a[i] == old(a)[perm[i]]);
   // array is sorted
-  ensures (forall k, l: int :: lo <= k && k <= l && l <= hi ==> a[k] <= a[l]);
-  
-  // rest of the array is untouched
-  ensures (forall k: int :: k < lo || k > hi ==> a[k] == old(a)[k]);
+  ensures (forall k, l: int :: 0 <= k && k <= l && l < N ==> a[k] <= a[l]);
 {
-  //assumption: all values are within the [-3N, 3N] range where N = length of `a'
   
-  //we're using three buckets: TODO at the moment we're using global arrays
-  //var b0: [int]int; // bucket for values [-3N,-1N)
-  //var b1: [int]int; //bucket for values [-1N,1N)
-  //var b2: [int]int; //bucket for values [1N,3N]
-  
-  //buckets' start/end indices
+  //buckets' end indices
   var b0_i:int;
   var b1_i:int;
   var b2_i:int;
@@ -306,24 +288,20 @@ procedure bs(lo : int, hi : int) returns (perm: [int]int)
   b0_i := 0;
   b1_i := 0;
   b2_i := 0;
-  bound_0 := -N;
+  bound_0 := -1*N;
   bound_1 := N;
   bound_2 := 3*N + 1;
   
-  i := lo;
-  while(i < hi)
-    invariant (i >= lo && i <= hi);
-    
-    //all previous elements of a have been placed in a bucket
-    invariant(forall e:int :: ((e >= lo && e <i) ==> (exists t:int :: (b0[t] == a[e] || b1[t] == a[e] || b2[t] == a[e]))) );
-    
+  i := 0;
+  while(i < N)
+    invariant (i >= 0 && i <= N);
+    // array 'a' is divided over b0,b1 and b2
+    invariant b0_i+b1_i+b2_i == i;
     //all buckets contain the correct kind of elements:
-    invariant(forall e:int :: (e >= 0 && e < b0_i) ==> (b0[e] < -N));
-    invariant(forall e:int :: (e >= 0 && e < b1_i) ==> (b1[e] >= -N && b1[e] < N));
-    invariant(forall e:int :: (e >= 0 && e < b2_i) ==> (b2[e] >= N && b2[e] < 3*N + 1));
-    
-    //TODO: more invariants
-    
+    invariant(forall e:int :: (e >= 0 && e < b0_i) ==> (b0[e] < -1*N));
+    invariant(forall e:int :: (e >= 0 && e < b1_i) ==> (b1[e] >= -1*N && b1[e] < N));
+    invariant(forall e:int :: (e >= 0 && e < b2_i) ==> (b2[e] >= N));
+        
     {
       
     //add a[i] to correct bucket
@@ -345,80 +323,14 @@ procedure bs(lo : int, hi : int) returns (perm: [int]int)
     i := i + 1;
   }
   
-  //debugging: check all elements have been inserted into a bucket
-  assert(forall e:int :: ((e >= lo && e < hi) ==> (exists t:int :: (b0[t] == a[e] || b1[t] == a[e] || b2[t] == a[e]))));
   
   
-  //TODO (?): keep track of permutations
-    
-  //sort the buckets
-  if(b0_i > 0) { // if bucket is non empty
-      call perm0 := qs_b0(0, b0_i-1);
-      i := 0;
-      while(i < b0_i)
-        invariant (forall k: int :: 0 <= k && k < i ==> a[lo + i] == b0[i]);
-        invariant (forall k, l: int :: lo <= k && k <= l && l < lo + i ==> a[k] <= a[l]);
-        //TODO: invariants
-      {
-        a[lo + i] := b0[i];
-        i := i + 1;
-      }
-      //here the array from lo...lo+bo_i-1 is sorted
-      assert (forall k, l: int :: lo <= k && k <= l && l < lo + b0_i ==> a[k] <= a[l]);
-  }
-  
-  if(b1_i > 0) { // if bucket is non empty
-      call perm1 := qs_b1(0, b1_i-1);
-      i := 0;
-      while(i < b1_i)
-        invariant (forall k: int :: 0 <= k && k < i ==> a[b0_i + i] == b1[i]);
-        invariant (forall k, l: int :: b0_i <= k && k <= l && l < b0_i + i ==> a[k] <= a[l]);
-        //TODO: invariants
-      {
-        a[b0_i + i] := b1[i];
-        i := i + 1;
-      }
-      //here the array from lo...lo+bo_i-1 is sorted
-      assert (forall k, l: int :: b0_i <= k && k <= l && l < b0_i + b1_i ==> a[k] <= a[l]);
-  }
- 
-   if(b2_i > 0) { // if bucket is non empty
-      call perm2 := qs_b2(0, b2_i-1);
-      i := 0;
-      while(i < b2_i)
-        invariant (forall k: int :: 0 <= k && k < i ==> a[b1_i + i] == b2[i]);
-        invariant (forall k, l: int :: b1_i <= k && k <= l && l < b1_i + i ==> a[k] <= a[l]);
-        //TODO: invariants
-      {
-        a[b1_i + i] := b2[i];
-        i := i + 1;
-      }
-      //here the array from lo...lo+bo_i-1 is sorted
-      assert (forall k, l: int :: b1_i <= k && k <= l && l < b1_i + b2_i ==> a[k] <= a[l]);
-  }
-  
-}
-
-
-
-procedure bs_aux(b0_i : int, b1_i: int, b2_i: int) returns (perm: [int]int)
-  modifies a, b0, b1, b2;
-  requires b0_i >= 0;
-  requires b1_i >= 0;
-  requires b2_i >= 0;
-  requires (forall k: int :: 0 <= k && k < b0_i ==> b0[k] < -N);
-  requires (forall k: int :: 0 <= k && k < b1_i ==> -N <= b1[k] && b1[k] < N);
-  requires (forall k: int :: 0 <= k && k < b2_i ==> N <= b2[k]);
-  ensures (forall k, l: int :: 0 <= k && k <= l && l < (b0_i+b1_i+b2_i) ==> a[k] <= a[l]);
-{
-
-  //iterator variables
-  var i :int;
-  var perm0,perm1,perm2 : [int]int;
-  
+  // sort first bucket if non-empty
   if(b0_i > 0) { call perm0 := qs_b0(0, b0_i-1); }
+  // copy back elements from bucket to array
   i := 0;
   while(i < b0_i)
+    // copied values are sorted
     invariant (forall k: int :: 0 <= k && k < i ==> a[k] == b0[k]);
     invariant (forall k, l: int :: 0 <= k && k <= l && l < i ==> a[k] <= a[l]);
   {
@@ -426,12 +338,16 @@ procedure bs_aux(b0_i : int, b1_i: int, b2_i: int) returns (perm: [int]int)
     i := i + 1;
   }
   
+  // sort second bucket if non-empty
   if(b1_i > 0) { call perm1 := qs_b1(0, b1_i-1); }
+  // copy back elements from bucket to array
   i := 0;
   while(i < b1_i)
+    // preserve info. about first part of array
     invariant (forall k: int :: 0 <= k && k < b0_i ==> a[k] == b0[k]);
     invariant (forall k, l: int :: 0 <= k && k <= l && l < b0_i ==> a[k] <= a[l]);
     
+    // copied values are sorted
     invariant (forall k: int :: 0 <= k && k < i ==> a[k+b0_i] == b1[k]);
     invariant (forall k, l: int :: 0 <= k && k <= l && l < i ==> a[k+b0_i] <= a[l+b0_i]);
       
@@ -439,21 +355,32 @@ procedure bs_aux(b0_i : int, b1_i: int, b2_i: int) returns (perm: [int]int)
     a[i+b0_i] := b1[i];   
   }
   
+
+  // sort third bucket if non-empty
   if(b2_i > 0) { call perm2 := qs_b2(0, b2_i-1); }
+  // copy back elements from bucket to array
   i := 0;
   while(i < b2_i)
+    // preserve info. about first part of array
     invariant (forall k: int :: 0 <= k && k < b0_i ==> a[k] == b0[k]);
     invariant (forall k, l: int :: 0 <= k && k <= l && l < b0_i ==> a[k] <= a[l]);
     
+    // preserve info. about second part of array
     invariant (forall k: int :: 0 <= k && k < b1_i ==> a[k+b0_i] == b1[k]);
     invariant (forall k, l: int :: 0 <= k && k <= l && l < b1_i ==> a[k+b0_i] <= a[l+b0_i]);
     
+    // copied values are sorted
     invariant (forall k: int :: 0 <= k && k < i ==> a[k+b0_i+b1_i] == b2[k]);
     invariant (forall k, l: int :: 0 <= k && k <= l && l < i ==> a[k+b0_i+b1_i] <= a[l+b0_i+b1_i]);
   {
     a[i+b0_i+b1_i] := b2[i];   
   }
   
-  
-  
+  //TODO prove that array is permutation of original
+  assume (forall k: int :: 0 <= k && k < N ==> 0 <= perm[k] && perm[k] < N);
+  assume (forall k, l: int :: 0 <= k && k < l && l < N ==> perm[k] != perm[l]);
+  // the final array is that permutation of the input array
+  assume (forall k: int :: 0 <= k && k < N ==> a[k] == old(a)[perm[k]]);
+
 }
+
