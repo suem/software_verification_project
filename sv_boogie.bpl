@@ -398,3 +398,62 @@ procedure bs(lo : int, hi : int) returns (perm: [int]int)
   }
   
 }
+
+
+
+procedure bs_aux(b0_i : int, b1_i: int, b2_i: int) returns (perm: [int]int)
+  modifies a, b0, b1, b2;
+  requires b0_i >= 0;
+  requires b1_i >= 0;
+  requires b2_i >= 0;
+  requires (forall k: int :: 0 <= k && k < b0_i ==> b0[k] < -N);
+  requires (forall k: int :: 0 <= k && k < b1_i ==> -N <= b1[k] && b1[k] < N);
+  requires (forall k: int :: 0 <= k && k < b2_i ==> N <= b2[k]);
+  ensures (forall k, l: int :: 0 <= k && k <= l && l < (b0_i+b1_i+b2_i) ==> a[k] <= a[l]);
+{
+
+  //iterator variables
+  var i :int;
+  var perm0,perm1,perm2 : [int]int;
+  
+  if(b0_i > 0) { call perm0 := qs_b0(0, b0_i-1); }
+  i := 0;
+  while(i < b0_i)
+    invariant (forall k: int :: 0 <= k && k < i ==> a[k] == b0[k]);
+    invariant (forall k, l: int :: 0 <= k && k <= l && l < i ==> a[k] <= a[l]);
+  {
+    a[i] := b0[i];
+    i := i + 1;
+  }
+  
+  if(b1_i > 0) { call perm1 := qs_b1(0, b1_i-1); }
+  i := 0;
+  while(i < b1_i)
+    invariant (forall k: int :: 0 <= k && k < b0_i ==> a[k] == b0[k]);
+    invariant (forall k, l: int :: 0 <= k && k <= l && l < b0_i ==> a[k] <= a[l]);
+    
+    invariant (forall k: int :: 0 <= k && k < i ==> a[k+b0_i] == b1[k]);
+    invariant (forall k, l: int :: 0 <= k && k <= l && l < i ==> a[k+b0_i] <= a[l+b0_i]);
+      
+  {
+    a[i+b0_i] := b1[i];   
+  }
+  
+  if(b2_i > 0) { call perm2 := qs_b2(0, b2_i-1); }
+  i := 0;
+  while(i < b2_i)
+    invariant (forall k: int :: 0 <= k && k < b0_i ==> a[k] == b0[k]);
+    invariant (forall k, l: int :: 0 <= k && k <= l && l < b0_i ==> a[k] <= a[l]);
+    
+    invariant (forall k: int :: 0 <= k && k < b1_i ==> a[k+b0_i] == b1[k]);
+    invariant (forall k, l: int :: 0 <= k && k <= l && l < b1_i ==> a[k+b0_i] <= a[l+b0_i]);
+    
+    invariant (forall k: int :: 0 <= k && k < i ==> a[k+b0_i+b1_i] == b2[k]);
+    invariant (forall k, l: int :: 0 <= k && k <= l && l < i ==> a[k+b0_i+b1_i] <= a[l+b0_i+b1_i]);
+  {
+    a[i+b0_i+b1_i] := b2[i];   
+  }
+  
+  
+  
+}
