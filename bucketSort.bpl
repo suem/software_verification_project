@@ -129,22 +129,11 @@ procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
     i := i + 1;
   }
   
-  assert(i == hi+1);
-  assert(b0_i + b1_i + b2_i == hi-lo + 1);
-  
   i := 0;
   while(i < b0_i)
     invariant (i >= 0 && i <= b0_i);
     invariant(forall e:int :: (e >= 0 && e < i) ==> (b0[e] == a[permA[e]]));
     invariant (forall k: int :: 0 <= k && k < i ==> lo <= permA[k] && permA[k] <= hi);
-    
-    invariant(forall e,f : int :: ((e >= 0 && e < b0_i && e != f && f >= 0 && f < b0_i) ==> (permAtoB0[e] != permAtoB0[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b1_i && e != f && f >= 0 && f < b1_i) ==> (permAtoB1[e] != permAtoB1[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b2_i && e != f && f >= 0 && f < b2_i) ==> (permAtoB2[e] != permAtoB2[f])));
-    
-    invariant(forall e,f : int :: ((e >= 0 && e < b0_i && f >=0 && f < b1_i) ==> (permAtoB0[e] != permAtoB1[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b0_i && f >=0 && f < b2_i) ==> (permAtoB0[e] != permAtoB2[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b1_i && f >=0 && f < b2_i) ==> (permAtoB1[e] != permAtoB2[f])));
     
     invariant (forall e:int :: (e >=0 && e < i ==> permA[e] == permAtoB0[e]));
     invariant (forall e,f:int :: (e >= 0 && e < f && f < i ==> permA[e] != permA[f]));
@@ -152,9 +141,6 @@ procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
     permA[i] := permAtoB0[i];
     i := i + 1;
   }
-  
-  assert(i == b0_i);
-  assert(forall e:int :: (e >= 0 && e < b0_i) ==> (b0[e] == a[permA[e]]));
   
   i := 0;
   while(i < b1_i)
@@ -164,30 +150,14 @@ procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
     invariant (forall k: int :: 0 <= k && k < b0_i ==> lo <= permA[k] && permA[k] <= hi);
     invariant (forall k: int :: b0_i <= k && k < i+b0_i ==> lo <= permA[k] && permA[k] <= hi);
     
-    invariant(forall e,f : int :: ((e >= 0 && e < b0_i && e != f && f >= 0 && f < b0_i) ==> (permAtoB0[e] != permAtoB0[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b1_i && e != f && f >= 0 && f < b1_i) ==> (permAtoB1[e] != permAtoB1[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b2_i && e != f && f >= 0 && f < b2_i) ==> (permAtoB2[e] != permAtoB2[f])));
-    
-    invariant(forall e,f : int :: ((e >= 0 && e < b0_i && f >=0 && f < b1_i) ==> (permAtoB0[e] != permAtoB1[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b0_i && f >=0 && f < b2_i) ==> (permAtoB0[e] != permAtoB2[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b1_i && f >=0 && f < b2_i) ==> (permAtoB1[e] != permAtoB2[f])));
-    
     invariant(forall f:int :: (f >= b0_i && f < b0_i + i ==> permA[f] == permAtoB1[f-b0_i]));
-    
-    //invariant (forall e,f:int :: (e >= 0 && e < f && f < i + b0_i ==> permA[e] != permA[f]));
+
     invariant(forall e:int :: (e >= 0 && e < b0_i + i ==> (permA[e] == permAtoB0[e] || permA[e] == permAtoB1[e-b0_i])));
     invariant (forall e,f:int :: (e >= 0 && e < i+ b0_i && e != f && f >= 0 && f < i + b0_i ==> permA[e] != permA[f]));
   {
     permA[i+b0_i] := permAtoB1[i];
     i := i + 1;
   }
-  
-  assert (i == b1_i);
-  assert(forall e:int :: (e >= 0 && e < b0_i) ==> (b0[e] == a[permA[e]]));
-  assert(forall e:int :: (e >= 0 && e < b1_i) ==> (b1[e] == a[permA[e + b0_i]]));
-  
-  assert (forall e,f:int :: (e >= 0 && e < i+ b0_i && e != f && f >= 0 && f < i + b0_i ==> permA[e] != permA[f]));
-  assert(forall e:int :: (e >= 0 && e < b0_i + b1_i ==> (permA[e] == permAtoB0[e] || permA[e] == permAtoB1[e-b0_i])));
   
   i := 0;
   while(i < b2_i)
@@ -199,14 +169,6 @@ procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
     invariant (forall k: int :: b0_i <= k && k < b1_i+b0_i ==> lo <= permA[k] && permA[k] <= hi);
     invariant (forall k: int :: b0_i + b1_i <= k && k < b0_i + b1_i + i ==> lo <= permA[k] && permA[k] <= hi);
     
-    invariant(forall e,f : int :: ((e >= 0 && e < b0_i && e != f && f >= 0 && f < b0_i) ==> (permAtoB0[e] != permAtoB0[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b1_i && e != f && f >= 0 && f < b1_i) ==> (permAtoB1[e] != permAtoB1[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b2_i && e != f && f >= 0 && f < b2_i) ==> (permAtoB2[e] != permAtoB2[f])));
-    
-    invariant(forall e,f : int :: ((e >= 0 && e < b0_i && f >=0 && f < b1_i) ==> (permAtoB0[e] != permAtoB1[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b0_i && f >=0 && f < b2_i) ==> (permAtoB0[e] != permAtoB2[f])));
-    invariant(forall e,f : int :: ((e >= 0 && e < b1_i && f >=0 && f < b2_i) ==> (permAtoB1[e] != permAtoB2[f])));
-    
     invariant(forall f:int :: (f >= b0_i+b1_i && f < b0_i + b1_i + i ==> permA[f] == permAtoB2[f-b0_i-b1_i]));
     invariant(forall e:int :: (e >= 0 && e < b0_i + b1_i + i ==> (permA[e] == permAtoB0[e] || permA[e] == permAtoB1[e-b0_i] || permA[e] == permAtoB2[e-b1_i-b0_i])));
     
@@ -217,23 +179,6 @@ procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
     i := i + 1;
   }
   
-  assert(i == b2_i);
-  assert(forall e:int :: (e >= 0 && e < b0_i) ==> (b0[e] == a[permA[e]]));
-  assert(forall e:int :: (e >= 0 && e < b1_i) ==> (b1[e] == a[permA[e + b0_i]]));
-  assert(forall e:int :: (e >= 0 && e < b2_i) ==> (b2[e] == a[permA[e + b0_i + b1_i]]));
-  
-  
-  assert(forall e,f : int :: ((e >= 0 && e < f && f < b0_i) ==> (permAtoB0[e] != permAtoB0[f])));
-  assert(forall e,f : int :: ((e >= 0 && e < f && f < b1_i) ==> (permAtoB1[e] != permAtoB1[f])));
-  assert(forall e,f : int :: ((e >= 0 && e < f && f < b2_i) ==> (permAtoB2[e] != permAtoB2[f])));
-  
-  assert(forall e,f : int :: ((e >= 0 && e < b0_i && f >=0 && f < b1_i) ==> (permAtoB0[e] != permAtoB1[f])));
-  assert(forall e,f : int :: ((e >= 0 && e < b0_i && f >=0 && f < b2_i) ==> (permAtoB0[e] != permAtoB2[f])));
-  assert(forall e,f : int :: ((e >= 0 && e < b1_i && f >=0 && f < b2_i) ==> (permAtoB1[e] != permAtoB2[f])));
-  
-  assert(forall e:int :: (e >= 0 && e < b0_i + b1_i + b2_i ==> (permA[e] == permAtoB0[e] || permA[e] == permAtoB1[e-b0_i] || permA[e] == permAtoB2[e-b1_i-b0_i])));
-  assert(forall e,f:int :: (e >= 0 && e < b2_i+ b1_i + b0_i && e != f && f >= 0 && f < b2_i + b1_i + b0_i ==> permA[e] != permA[f]));
-  
   // index mapping from bucket indexes to array indexes 
   off_b0 := lo + b0_i; // end index of bucket0 in a (exclusive)
   off_b1 := lo + b0_i + b1_i; // end index of bucket1 in a (exclusive)
@@ -243,49 +188,6 @@ procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
   if(b0_i > 0) { call b0_sorted, perm0 := quickSort(b0, 0, b0_i-1); }
   if(b1_i > 0) { call b1_sorted, perm1 := quickSort(b1, 0, b1_i-1); }
   if(b2_i > 0) { call b2_sorted, perm2 := quickSort(b2, 0, b2_i-1); }
-  
-  assert (forall e, f: int :: e >=0  && e < b0_i && e != f && f >= 0 && f < b0_i ==> perm0[e] != perm0[f]);
-  assert (forall e, f: int :: e >=0  && e < b1_i && e != f && f >= 0 && f < b1_i ==> perm1[e] != perm1[f]);
-  assert (forall e, f: int :: e >=0  && e < b2_i && e != f && f >= 0 && f < b2_i ==> perm2[e] != perm2[f]);
-  
-  /*assert (forall e, f: int :: e >=0  && e < b0_i && e != f && f >= 0 && f < b1_i ==> perm0[e] != perm0[f]);
-  assert (forall e, f: int :: e >=0  && e < b0_i && e != f && f >= 0 && f < b2_i ==> perm0[e] != perm1[f]);
-  assert (forall e, f: int :: e >=0  && e < b1_i && e != f && f >= 0 && f < b2_i ==> perm1[e] != perm2[f]);
-  
-  
-  
-  assert(forall e:int :: (e >= 0 && e < b0_i) ==> (b0[e] == a[permA[e]]));
-  assert(forall e:int :: (e >= 0 && e < b1_i) ==> (b1[e] == a[permA[e + b0_i]]));
-  assert(forall e:int :: (e >= 0 && e < b2_i) ==> (b2[e] == a[permA[e + b0_i + b1_i]]));
-  
-  assert(forall e:int :: (e >= 0 && e < b0_i) ==> (b0_sorted[e] == b0[perm0[e]]));
-  assert(forall e:int :: (e >= 0 && e < b1_i) ==> (b1_sorted[e] == b1[perm1[e]]));
-  assert(forall e:int :: (e >= 0 && e < b2_i) ==> (b2_sorted[e] == b2[perm2[e]]));
-  
-  assert(forall e:int :: (e >= 0 && e < b0_i) ==> (b0_sorted[e] == old(a[permA[perm0[e]]])));
-  assert(forall e:int :: (e >= 0 && e < b1_i) ==> (b1_sorted[e] == old(a[permA[perm1[e] + b0_i]])));
-  assert(forall e:int :: (e >= 0 && e < b2_i) ==> (b2_sorted[e] == old(a[permA[perm2[e] + b0_i + b1_i]])));
-  
-  assert(forall e:int :: (e >= lo && e < lo + b0_i) ==> (b0_sorted[e-lo] == old(a[permA[perm0[e-lo]]])));
-  assert(forall e:int :: (e >= lo && e < lo + b1_i) ==> (b1_sorted[e-lo] == old(a[permA[perm1[e-lo] + b0_i]])));
-  assert(forall e:int :: (e >= lo && e < lo + b2_i) ==> (b2_sorted[e-lo] == old(a[permA[perm2[e-lo] + b0_i + b1_i]])));
-  
-  assert(forall e:int :: (e >= lo && e <= hi) ==> (
-    (e < b0_i ==> b0_sorted[e-lo] == old(a[permA[perm0[e-lo]]]))
-    &&
-    (e >= b0_i && e < b0_i + b1_i ==> (b1_sorted[e-b0_i] == old(a[permA[perm1[e-b0_i] + b0_i]])))
-    &&
-    (e >= b0_i + b1_i && e < b0_i + b1_i + b2_i ==> b2_sorted[e-b0_i-b1_i] == old(a[permA[perm2[e-b0_i-b1_i] + b0_i + b1_i]]))
-    )
-  );
-  
-   assert (forall k: int :: 0 <= k && k < b0_i ==> lo <= permA[k] && permA[k] <= hi);
-   assert (forall k: int :: b0_i <= k && k < b1_i+b0_i ==> lo <= permA[k] && permA[k] <= hi);
-   assert (forall k: int :: b0_i + b1_i <= k && k < b0_i + b1_i + b2_i ==> lo <= permA[k] && permA[k] <= hi);
-   assert (forall k: int :: 0 <= k && k <= hi-lo ==> lo <= permA[k] && permA[k] <= hi);
-  //assert(forall e:int :: (e >= lo && e <= hi) ==> ());
-  
-  */
 
   i := lo;
   while(i < off_b0)
@@ -294,18 +196,6 @@ procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
     invariant (forall k: int :: lo <= k && k < i ==> a[k] == old(a[perm[k]]));
     invariant (forall k: int :: lo <= k && k < i ==> lo <= perm[k] && perm[k] <= hi);
     
-    invariant(forall e,f:int :: (e >= 0 && e < b2_i+ b1_i + b0_i && e != f && f >= 0 && f < b2_i + b1_i + b0_i ==> permA[e] != permA[f]));
-    invariant (b0_i + b1_i + b2_i == hi-lo +1);
-    
-    invariant (forall e, f: int :: e >=0  && e < b0_i && e != f && f >= 0 && f < b0_i ==> perm0[e] != perm0[f]);
-    invariant (forall e, f: int :: e >=0  && e < b1_i && e != f && f >= 0 && f < b1_i ==> perm1[e] != perm1[f]);
-    invariant (forall e, f: int :: e >=0  && e < b2_i && e != f && f >= 0 && f < b2_i ==> perm2[e] != perm2[f]);
-    
-    
-    invariant(forall e,f:int :: (e >= 0 && e < b0_i && e != f && f >= 0 && f < b0_i ==> permA[perm0[e]] != permA[perm0[f]]));
-    invariant(forall e,f:int :: (e >= 0 && e < b1_i && e != f && f >= 0 && f < b1_i ==> permA[perm1[e] + b0_i] != permA[perm1[f] + b0_i]));
-    invariant(forall e,f:int :: (e >= 0 && e < b2_i && e != f && f >= 0 && f < b2_i ==> permA[perm2[e] + b1_i + b0_i] != permA[perm2[f] + b1_i + b0_i]));
-    
     invariant(forall f:int ::(f >= lo && f < i ==> perm[f] == permA[perm0[f-lo]]));
     invariant(forall e,f:int :: (e >= lo && e < i && e != f && f >= lo && f < i ==> perm[e] != perm[f]));
   {
@@ -313,14 +203,6 @@ procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
     perm[i] := permA[perm0[i-lo]];
     i := i + 1;
   }
-
-/*
-  assert(forall e:int :: (e >= lo && e <= hi) ==> (
-      (e < off_b0 ==> a[e] == old(a[perm[e]]))
-    )
-  );*/
-  
-  assert(forall e,f:int :: (e >= lo && e < i && e != f && f >= lo && f < off_b0 ==> perm[e] != perm[f]));
 
   // copy back elements from bucket to array
   i := off_b0;
@@ -337,15 +219,6 @@ procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
     invariant (forall k: int :: off_b0 <= k && k < i ==> a[k] == old(a[perm[k]]));
     invariant (forall k: int :: lo <= k && k < off_b0 ==> lo <= perm[k] && perm[k] <= hi);
     invariant (forall k: int :: off_b0 <= k && k < i ==> lo <= perm[k] && perm[k] <= hi);
-    
-    invariant (forall e, f: int :: e >=0  && e < b0_i && e != f && f >= 0 && f < b0_i ==> perm0[e] != perm0[f]);
-    invariant (forall e, f: int :: e >=0  && e < b1_i && e != f && f >= 0 && f < b1_i ==> perm1[e] != perm1[f]);
-    invariant (forall e, f: int :: e >=0  && e < b2_i && e != f && f >= 0 && f < b2_i ==> perm2[e] != perm2[f]);
-    
-    
-    invariant(forall e,f:int :: (e >= 0 && e < b0_i && e != f && f >= 0 && f < b0_i ==> permA[perm0[e]] != permA[perm0[f]]));
-    invariant(forall e,f:int :: (e >= 0 && e < b1_i && e != f && f >= 0 && f < b1_i ==> permA[perm1[e] + b0_i] != permA[perm1[f] + b0_i]));
-    invariant(forall e,f:int :: (e >= 0 && e < b2_i && e != f && f >= 0 && f < b2_i ==> permA[perm2[e] + b1_i + b0_i] != permA[perm2[f] + b1_i + b0_i]));
     
     invariant(forall f:int ::(f >= off_b0 && f < i ==> perm[f] == permA[perm1[f-b0_i-lo] + b0_i]));
     invariant(forall e,f:int :: (e >= lo && e < i && e != f && f >= lo && f < i ==> perm[e] != perm[f]));
@@ -373,15 +246,6 @@ procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
     invariant (forall k: int :: off_b0 <= k && k < off_b1 ==> lo <= perm[k] && perm[k] <= hi);
     invariant (forall k: int :: off_b1 <= k && k < i ==> lo <= perm[k] && perm[k] <= hi);
     
-    invariant (forall e, f: int :: e >=0  && e < b0_i && e != f && f >= 0 && f < b0_i ==> perm0[e] != perm0[f]);
-    invariant (forall e, f: int :: e >=0  && e < b1_i && e != f && f >= 0 && f < b1_i ==> perm1[e] != perm1[f]);
-    invariant (forall e, f: int :: e >=0  && e < b2_i && e != f && f >= 0 && f < b2_i ==> perm2[e] != perm2[f]);
-    
-    
-    invariant(forall e,f:int :: (e >= 0 && e < b0_i && e != f && f >= 0 && f < b0_i ==> permA[perm0[e]] != permA[perm0[f]]));
-    invariant(forall e,f:int :: (e >= 0 && e < b1_i && e != f && f >= 0 && f < b1_i ==> permA[perm1[e] + b0_i] != permA[perm1[f] + b0_i]));
-    invariant(forall e,f:int :: (e >= 0 && e < b2_i && e != f && f >= 0 && f < b2_i ==> permA[perm2[e] + b1_i + b0_i] != permA[perm2[f] + b1_i + b0_i]));
-    
     invariant(forall f:int ::(f >= off_b1 && f < i ==> perm[f] == permA[perm2[f-b0_i-b1_i-lo] + b0_i + b1_i]));
     invariant(forall e,f:int :: (e >= lo && e < i && e != f && f >= lo && f < i ==> perm[e] != perm[f]));
   {
@@ -389,25 +253,5 @@ procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
     perm[i] := permA[perm2[i-b0_i-b1_i-lo] + b0_i + b1_i];
     i := i + 1;
   }
-  
-  assert(forall e:int :: (e >= 0 && e < b0_i + b1_i + b2_i ==> (permA[e] == permAtoB0[e] || permA[e] == permAtoB1[e-b0_i] || permA[e] == permAtoB2[e-b1_i-b0_i])));
-
-  /*
-  assert (forall k: int :: lo <= k && k < off_b0 ==> a[k] == b0_sorted[k-lo]);
-  assert (forall k: int :: off_b0 <= k && k < off_b1 ==> a[k] == b1_sorted[k-off_b0]);
-  assert (forall k: int :: off_b1 <= k && k < off_b2 ==> a[k] == b2_sorted[k-off_b1]);
-  assert (forall k, l: int ::     lo <= k && k <= l && l < off_b0 ==> a[k] <= a[l]);
-  assert (forall k, l: int :: off_b0 <= k && k <= l && l < off_b1 ==> a[k] <= a[l]);
-  assert (forall k, l: int :: off_b1 <= k && k <= l && l < off_b2 ==> a[k] <= a[l]);
-  */
-
-  // now the array is sorted
-  // assert (forall k, l: int ::     lo <= k && k <= l && l <= hi ==> a[k] <= a[l]);
-
-
-  // TODO we still need to construct a permutation and prove these properties
-  assert (forall k: int :: lo <= k && k <= hi ==> lo <= perm[k] && perm[k] <= hi);
-  assert (forall k, l: int :: k >= lo && k < hi+1 && k != l && l >= lo && l < hi+1 ==> perm[k] != perm[l]);
-  assert (forall k: int :: lo <= k && k <= hi ==> a[k] == old(a)[perm[k]]);
 }
 
