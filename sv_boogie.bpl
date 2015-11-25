@@ -24,7 +24,6 @@ procedure sort() returns (perm : [int]int)
   ensures (forall i: int :: 0 <= i && i <= N-1 ==> a[i] == old(a)[perm[i]]);
   // array is sorted
   ensures (forall k, l: int :: 0 <= k && k <= l && l <= N-1 ==> a[k] <= a[l]);
-  
 {
   
   if(N > 0) { // array not empty
@@ -132,7 +131,7 @@ procedure quickSort(arr : [int]int, lo : int, hi : int) returns (arr_sorted : [i
   arr_sorted := a_qs;
 }
 
-
+// sorts global array 'a_qs' in the index range [lo,...,hi] (hi is inclusive)
 procedure qs(lo : int, hi : int) returns (perm: [int]int) 
   modifies a_qs;
   requires lo <= hi;
@@ -152,7 +151,6 @@ procedure qs(lo : int, hi : int) returns (perm: [int]int)
   
   if(lo < hi) {
     call pivot_index, perm := qsPartition(lo,hi);
-    assert (forall i: int :: lo <= i && i <= hi ==> a_qs[i] == old(a_qs)[perm[i]]);
 
     // we have a non empty left part
     if(lo < pivot_index) {
@@ -169,9 +167,6 @@ procedure qs(lo : int, hi : int) returns (perm: [int]int)
         n := n+1;
       }
     }     
-
-    //assert (forall i: int :: lo <= i && i <= pivot_index-1 ==> a_qs[i] == old(a_qs)[perm[perm_comb[i]]]);
-    //assert (forall i: int :: pivot_index + 1 <= i && i <= hi ==> a_qs[i] == old(a_qs)[perm[i]]);
 
     // we have a non empty right part
     if(pivot_index + 1 <= hi) {
@@ -195,16 +190,11 @@ procedure qs(lo : int, hi : int) returns (perm: [int]int)
       }
     }
 
-    //assert (forall i: int :: pivot_index + 1 <= i && i <= hi ==> a_qs[i] == old(a_qs)[perm[perm_comb[i]]]);
-    //assert (forall i: int :: lo <= i && i <= pivot_index-1 ==> a_qs[i] == old(a_qs)[perm[perm_comb[i]]]);
 
     perm_comb[pivot_index] := pivot_index;
     // perm_comb is now a permutation
 
-    //assert (forall i: int :: lo <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
-    //assert (forall i: int :: lo <= i && i <= hi ==> lo <= perm_comb[i] && perm_comb[i] <= hi);
-
-    //IMPORTANT: without this assert the verify doesn't terminate
+    // IMPORTANT: this assert is needed for boogie to terminate
     assert (forall k, l: int :: lo <= k && k <= l && l <= hi  ==> a_qs[k] <= a_qs[l]);
 
     // combine perm_comb with perm
@@ -227,14 +217,15 @@ procedure qs(lo : int, hi : int) returns (perm: [int]int)
     perm[lo] := lo;
   }
 
-  // IMPORTANT: this assert is crutial for boogie to terminate
+  // IMPORTANT: this assert is needed for boogie to terminate
   assert (forall i: int :: lo <= i && i <= hi ==> a_qs[i] == old(a_qs)[perm[i]]);
 }
 
 
+// sorts global array 'a' in the index range [lo,...,hi] (hi is inclusive)
 procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
-  modifies a,a_qs; //, b0, b1, b2;
-  // only allow bucketsort to be called from [0..N-1]
+  modifies a,a_qs; 
+  // range must not be negative
   requires 0 <= lo && lo <= hi;
   // perm is a permutation
   ensures (forall k: int :: lo <= k && k <= hi ==> lo <= perm[k] && perm[k] <= hi);
