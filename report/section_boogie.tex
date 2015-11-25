@@ -1,120 +1,133 @@
 \section{Boogie}\label{boogie_discussion}
-TODO
+
+In this part we discuss the second part of the project, implementing and verifying quicksort and bucketsort 
+in Boogie. First we describe how we chose to specify our algorithms e\.g\. how we described the complete behaviour
+of our sorting algorithms. Then we quickly discuss how the two algorithms were implemented followed by an in-depth 
+discussion about the verification task where we describe the varous problems we faced and how we overcame them. Finally
+we compare the task of verifying and specifying in Boogie in contrast to Autoproof.
+
+\subsection{Algorithm Specification}
+
+Both quicksort and bucketsort basically share the same specification aside from some minor differences due to 
+implementation details. Therefore we just state the specification of a general sorting algorithm in Boogie which 
+applies to both quicksort and bucketsort.\\
+
+The signature of our sort procedure looks as follows:
+
+\begin{verbatim}
+  procedure xSort(lo: int, hi: int) returns (perm: [int]int)  
+    modifies a;
+   ...
+ \end{verbatim}
+
+The sort procedure sorts a global variable \texttt{a:[int]int} from indices \texttt{lo} to \texttt{hi}.
+This global variable is a map which models a one-dimensional array of integers. We decided from the beginning 
+to sort an arbitrary sub-sequence of the array because it would be useful when implementing quicksort.
+The return value of \texttt{xSort} is map from \texttt{int} to \texttt{int} which is a permutation on the
+array indices that describes how the elements of the array were swapped by \texttt{xSort}.
+\\
+
+\texttt{sort} has only one precondition, namely that the input range must not be negative:
+\begin{verbatim}
+  requires lo <= hi;
+\end{verbatim}
+
+To specify the entire behaviour of the sort procedure, we state the following postconditions.
+\begin{itemize}
+\item After the procedure call, the array must be sorted:
+  \begin{verbatim}
+  ensures (forall k, l: int :: 
+    lo <= k && k <= l && l <= hi ==> a[k] <= a[l]
+  );
+\end{verbatim}
+
+\item The return value must be a valid permutation of the array indices.
+  \begin{verbatim}
+  ensures (
+    forall i: int :: 
+      lo <= i && i <= hi 
+      ==> lo <= perm[i] && perm[i] <= hi
+  );
+  ensures (
+    forall k, l: int :: 
+      lo <= k && k < l && l <= hi 
+      ==> perm[k] != perm[l]
+  );
+\end{verbatim}
+
+\item The final array is a permutation of the input array. Exactly the permuatation that is returned. 
+  \begin{verbatim}
+  ensures (
+    forall i: int :: 
+      lo <= i && i <= hi 
+      ==> a_qs[i] == old(a_qs)[perm[i]]
+  );
+\end{verbatim}
+ 
+\end{itemize}
+
+This specification is influenced by the bubblesort example that is 
+given on the Boogie webpage \footnote{\url{http://rise4fun.com/Boogie/Bubble}}. We decided to 
+copy the approach of using a concrete permutation to state that the final array is a permutation of
+the input array, because we felt that it would be easier to actually construct such a permutation rather
+than having to prove just the existance.
+
 \subsection{Quicksort Implementation}
 
-We implemented quicksort as specfified in "Introduction to Algorithms (TODO cite)". 
-The design of our boogie implementation was mostly influenced by the bubblesort example 
-from microsoft research (TODO cite). A global map variable \texttt{a :[int]int} is used to represent the
-array to be sorted. The qucksort implementation modifies this variable.
+We implemented the textbook definition of quicksort as described in "Introduction to Algorithms". 
+Quicksort is implemented by the \texttt{qs} procedure. 
+It first partitions the array into a left and right part such that the left part is smaller than or equal to
+the pivot and the right part is greater than the pivot. The pivot element is always the right most
+element of the array. This partition step is implemented in a separate procedure called \texttt{qsPartition}.
+After partitioning, \texttt{qs} is called recursively on the left and the right part of the array. 
+In addition to the actual sorting, \texttt{qs} and \texttt{qsPartition} both construct a permutation that
+keeps track on how the array elements were swapped. A big part of the implementation consists of code that
+combines the permutations returned by \texttt{qsPartition} and the two recursive calls to \texttt{qs} to a single permutation
+capturing all swap opperations.
 
-Our implementation of quicksort is divided into the following two procedures:
-\begin{verbatim}
-procedure qsPartition(lo : int, hi : int) 
-  returns (pivot_index: int, perm: [int]int) {
-  ...
-}
-\end{verbatim}
+\subsection{Bucketsort Implementation}
 
-\begin{verbatim}
-procedure qs(lo : int, hi : int) returns (perm: [int]int) {
-  ...
-}
-\end{verbatim}
-
-Both procedures take arguments \texttt{lo} and \texttt{hi} to specify which part of the array is processed.
-\texttt{qsPartition} divides the array into two parts, a left part that is smaller than or equal to the pivot
-element and a right part that is greater than the pivot element. The pivot element is defined to be the right most element of the array. 
-The return value of \texttt{qsPartition} is the final index of the pivot element and another map \texttt{perm :[int]int} which is a permutation
-on the range $lo$ to $hi$. This permutation expresses how the original array was permutetd by the algorithm.
+Bucketsort is implemented in the \texttt{bucketSort} procedure.  
+The procedure divides the array into three buckets with elements in the range of $[-3*N)$, $[-N,N)$ and
+$[N,3*N)$ respectively. This is possible because we know that the procedure will only be called with elements in that range.
+The three buckets are then all sorted individually with quicksort. 
+After that, the now sorted buckets are then copied back into the original array.
 \\\\
-The second procedure \texttt{qs} first calls \texttt{qsPartition} on the entire array, 
-then it recursively calls itselfe on the left and the right part of the array. This procedure also returns 
-a permutation to indicate how the elements of the array were permuted.
-\\\\
-Implementing the actual sorting algorithm was actually rather easy. We could basically copy the textbook definition to implement
-\texttt{qsPartition} and \texttt{qs}. The hard part was to construct a permutation that keeps track of how the array elements are mutated.
-In \texttt{qsPartition} this part is easy because the \texttt{perm} map just keeps track of how array elements are swapped. The difficult part was to
-combine the permutation that is return by \texttt{qsPartition} with the two permutations that are returned by the two recursive calls to \texttt{qs}.
-First the two permutations returned by the recursive calls have to be combined to a new permutation on the entire range from $lo$ to $hi$. Then this permutation
-is again combined with the permutation returned by \texttt{qsPartition}. This bookkeeping makes up a bigger part of the implementation.
-\\\\ 
-This initial version of quicksort works but it has one major drawback. The procedure is designed to only sort a single global variable. However
-it is not possible to sort arbitrary arrays e.g. arrays that are passed as input argument to the procedure. Initially we overcame this shortcomming
-by introducing more global array variables and having multiple copies of the same qucksort procedure, each working on a different global variable.
-To avoid having to do this for each new array that has to be sorted, we came up with the following solution. First the \texttt{qs} procedure was changed
-to sort a global array variable called \texttt{a\_qs}. Then to be able to sort arbitrary arrays, we 
-introduced the following new procedure:
+Just as in quicksort, the bucketsort implementation also has to construct a permutation that reflects
+the different swap operations. This was more challenging than in quicksort, because the size of the
+three buckets is not known in advance. 
+
+
+Note that being able to call quicksort with three buckets was not a trivial task. 
+The problems are discussed in the next section. 
+
+\subsection{Implementing modular sorting algorithm}
+
+In Boogie, as opposed to Eiffel/Autoproof, it isn't possible for procedures to modify
+arguments. This is why our sorting algorithm implementations both sort a global variable. 
+In the case of bucketsort however it's necessary to sort three different arrays with the
+same procedure e\.g\. quicksort. To solve this issue, we first modified our quicksort implementation
+to work on a different global variable \texttt{a\_qs} and then added the following procedure:
 
 \begin{verbatim}
 procedure quickSort(arr : [int]int, lo : int, hi : int) 
   returns (arr_sorted : [int]int, perm: [int]int) 
-  modifies a_qs;
+  ...
 {
-  // write input array into a_qs
   a_qs := arr;
-  // let quicksort implementation sort a_qs
   call perm := qs(lo,hi);
-  // write a_qs into output argument
   arr_sorted := a_qs;
 }
 \end{verbatim}
 
-This procedure uses \texttt{a\_qs} as temporary variable for sorting arbitrary arrays. \texttt{quickSort} takes an array 
-as input argument, copies it into \texttt{a\_qs}, calls \texttt{qs} to sort it and then writes the now sorted array into
-the return value. Using this construction we are now able to sorte arbitrary arrays by having just one global variable.
+The new \texttt{quickSort} has the same specification as \texttt{qs} but instead of sorting a global array,
+it takes an array as argument and returns a sorted copy. This is achieved by using \texttt{a\_qs} as temporary 
+variable to store the input array. Now with this construction it is possible to sort arbitrary arrays using
+our existing quicksort implementation.
 
 
-\subsection{Bucketsort Implementation}
-For our bucketsort implementation we decided to copy the procedure signature from quicksort. 
 
-\begin{verbatim}
-procedure bucketSort(lo : int, hi : int) returns (perm: [int]int)
-  ...
-}
-\end{verbatim}
-
-We know that \texttt{bucketSort} is only called with array elements that range from $-3*N$ to $3*N$ therefore
-the algorithm divides the array to be sorted into three buckets with elements in the range $[-3*N)$, $[-N,N)$ and
-$[N,3*N)$ respectively. The three buckets are implemented as three arrays. \texttt{bucketSort} iterates over the original
-array and copies each element to it's corresponding bucket array. Then each bucket is sorted using our existing qucksort implementation.
-After that, the now sorted bucket arrays are written back to the original array yielding a sorted version of the original array. 
-\\\\
-Unfortunately we didn't have the time to implement the construction of a permutation that represents how the elements of the original array were 
-permuted by \texttt{bucketSort}. This task proved to be more challenging than in the case of quicksort. Because the original array is divided into 
-three buckets in a single while loop and we can't know how many elements will end up in each bucket it's hard to construct a permutation that reflects
-how the array elements are divided into the three buckets.
-
-\subsection{Specification}
-
-Both sort functions share the following specification:
-
-\begin{verbatim}
-procedure sort(lo : int, hi : int) returns (perm: [int]int)
-  modifies a;
-  requires lo <= hi;
-  // perm is a permutation
-  ensures (forall i: int :: lo <= i && i <= hi ==> lo <= perm[i] && perm[i] <= hi);
-  ensures (forall k, l: int :: lo <= k && k < l && l <= hi ==> perm[k] != perm[l]);
-  // the final array is that permutation of the input array
-  ensures (forall i: int :: lo <= i && i <= hi ==> a[i] == old(a)[perm[i]]);
-  // array is sorted
-  ensures (forall k, l: int :: lo <= k && k <= l && l <= hi  ==> a[k] <= a[l]);
-{ ... }
-\end{verbatim}
-
-Each sort procedure sorts some global array in the index range given by $lo$ and $hi$. 
-There is only one precondition, namely that this range is not negative. The postconditions guarantee that the
-array is sorted and that the final array is a permutation of the original. To express this property, the procedure
-returns a concrete permutation that satisfies this property. 
-We decided to use this specification, because it was already sucessfully used to 
-specify and verify bubblesort in an example boogie code provided by microsoft research 
-(TODO cite http://rise4fun.com/Boogie/Bubble). A consequence of this choice of specification is that the sort procedure has
-to construct a permutation. Alternatively we could have just stated the existance of such a permutation. This however would have
-been harder to prove in our opinion. The advantage of our approach is that the implementation of the procedure servers as a constructive
-proofe for the existance of such a permutaion. In a way this allows us to state the prove rather than having to depend on boogies ability to 
-infer the existinance of a permutation somehow.
-\\\\
-How these permutations are constructed was already discussed in sections X and Y (TODO reference sectinos).
+\subsection{Verification}
 
 \subsection{Verification}
 TODO: report "significant problems" (e.g. which procedures could be verified, and which could not\\
