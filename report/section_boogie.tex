@@ -129,10 +129,122 @@ our existing quicksort implementation.
 
 \subsection{Verification}
 
-\subsection{Verification}
-TODO: report "significant problems" (e.g. which procedures could be verified, and which could not\\
-TODO: describe changes to implementation/specification made to simplify proofs\\
-TODO: describe which parts of the specification you could not verify and why\\
-TODO: explain how you achieved modular verification
+We managed to verify all our procedures with Boogie. However this was not an easy task. While working 
+with boogie we encounterd several difficulties which will be discussed in this section.\\\\
+
+A general problem that we faced in various places was the following. Given that a property could be proven
+to hold over a section of an array. Then a second while loop that modifies a different section of the same array
+would erase the previous information about the first section. We solved this problem by always adding all properties that
+had been previously shown about an array into the loop invariant of each subsequent while loop that would modify 
+said array again. Unfortunately this lead to rather verbose loop invariants which would be 
+repeated in several loops.
+\\\\
+A variant of this problem also occured while verifying quicksort. Because each recursive call 
+to \texttt{qs} modifies the same global variable \texttt{a\+qs}, all previous information about \texttt{a\+qs} 
+are lost after ther procedure call. This was a problem because we would loose the information that the left
+part of the array is sorted after calling quicksort on the right part. 
+This problem was solved by adding the following postcondition to \texttt{qs} and subsequently also \texttt{qsPartition}.
+
+\begin{verbatim}
+  ensures (forall i: int :: i < lo || i > hi ==> a_qs[i] == old(a_qs)[i]);
+\end{verbatim}
+
+The postcondition above states that only the elements in the range given by $[lo, hi]$ are modified. Proving this
+propery was straightforward and it resolved the problem that was described above.\\
+
+Another big problem was the fact that the Boogie verifyier would not always terminate after a 
+sensible amount of time. Furthermore, having the verifyier terminate could be influenced by
+adding certain assertions to the code. In fact, our final verification of quicksort requires
+two assertions to be present for the verifyer to terminate. We highlighted these assertions in our
+source code using comments.\\
+
+The biggest problem we faced was during the verification of bucketsort. There we had to show
+that if a sorted array (a bucket) is copied into another array (the original array to sort), 
+then this part of the array is also sorted. Proving this boiled down to the following lemma:
+
+\begin{verbatim}
+procedure lemma_absurde(a : [int]int, b:[int]int, off : int, n : int) 
+    requires off >= 0;
+    requires n >= 0;
+    requires (
+      forall k: int :: 0 <= k && k < n 
+        ==> a[k+off] == b[k]
+    );
+    requires (
+      forall k, l: int :: 0 <= k && k <= l && l < n 
+        ==> b[k] <= b[l]
+    );
+    ensures (
+      forall k, l: int :: 0 <= k && k <= l && l < n 
+        ==> a[k+off] <= a[l+off]
+    );
+{
+    assume (
+      forall k, l: int :: 0 <= k && k <= l && l < n 
+        ==> a[k+off] <= a[l+off]
+      );
+}
+\end{verbatim}
+
+\texttt{a} is the original array and \texttt{b} is the bucket array. The lemma states that 
+if the bucket \texttt{b} is sorted and if the array \texttt{a} is equal to \texttt{b} in
+the index range from \texttt{off} to \texttt{off+n} then \texttt{a} is also sorted in this range.
+However boogie is not able to prove this lemma not even by assuming the postcondition in the
+procedure body.\\
+
+In the end we figured out that the problem came from the way the array \texttt{a} was indexed.
+The lemma above uses a constant offset \texttt{off} to address a certain part in \texttt{a}. 
+By reformulationg this problem into a form that doesn't use this offset, Boogie is able
+to prove the lemma:
+
+\begin{verbatim}
+procedure lemma(a : [int]int, b:[int]int, lo : int, hi : int, n : int) 
+    requires hi-lo+1==n;
+    requires n >= 0;
+    requires (forall k: int :: lo <= k && k <= hi ==> a[k] == b[k-lo]);
+    requires (forall k, l: int :: 0 <= k && k <= l && l < n ==> b[k] <= b[l]);
+    ensures (forall k, l: int :: lo <= k && k <= l && l <= hi ==> a[k] <= a[l]);
+{ }
+\end{verbatim}
+
+Figuring out this trick took us a long. 
+Another problem we faced is the fact that Boogie is not always correct. We were able to have Boogie prove 
+a false statement. Boogie would verify the following procedure:
+
+\begin{verbatim}
+const N: int;
+axiom 0 <= N;
+procedure gaga()
+  ensures (forall k, l: int :: 0 <= k && k <= l && l < N ==> false); 
+{
+  var x:int;
+  var i :int;
+  x := -N;
+  i := 0;
+  while(i < N) { 
+    i := i + 1;
+  }
+}
+\end{verbatim}
+
+This turned out to be a bug which has been fixed in 
+the meantime\footnote{\url{https://github.com/boogie-org/boogie/issues/25}}.
+
+The various problems described above made the verification task rather frustrating compared to the
+first part of the project. In the next section we'll contrast the differences between AutoProof and Boogie.
 
 \subsection{Boogie vs. Autoproof}
+The biggest difference between AutoProof and Boogie is the level of abstraction that can be 
+used to express statements. AutoProof offers a rich set of theories to reason about arrays in the
+form of sets, bags or sequences. With Boogie on the other hand, one can only reason about very 
+low level constructs like maps.\\
+
+Another difference between Boogie and AutoProof is the fact that it's not possible to modify
+arguments to a procedure whereas AutoProof e\.g\. Eiffel allows this. As consequence we had to come up
+with our own scheme to be able to sort arbitrary arrays.\\
+
+In conclusion, we AutoProof to be a lot more conventient to reason about programs. Specifying and
+verifying a program in Boogie leads to a lot of verbose verification code because only low level constructs 
+can be used to express properties whereas AutoProof already provides a range on conventient higher level constructs. 
+Furthermore Boogie behaves strangely in many situations which can lead to a lot of frustration if one lacks experience.
+
