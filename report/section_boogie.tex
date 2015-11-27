@@ -1,14 +1,11 @@
 \section{Boogie}\label{boogie_discussion}
 
-In this part we discuss the second part of the project, implementing and verifying quicksort and bucketsort 
-in Boogie. First we describe how we specified our algorithms e\.g\. how we described the complete behavior
-of the two sorting algorithms. Then we quickly discuss how the two algorithms were implemented followed by a 
-discussion about the verification task. There we describe the various problems we faced and how we overcame them.
+In this part we discuss the second part of the project, implementing and verifying quicksort and bucketsort in Boogie.\\
+First we describe how we specified our algorithms i.e. how we described the complete behaviour of the two sorting algorithms. We then quickly discuss how the two algorithms were implemented followed by a discussion about the verification task. There we describe the various problems we faced and how we overcame them.
 
 \subsection{Algorithm Specification}
 
-Both quicksort and bucketsort share the same specification aside from some minor differences due to 
-implementation details. Therefore we just state the specification of a general sorting algorithm in Boogie which 
+Both quicksort and bucketsort share the same specification aside from some minor differences due to implementation details. Therefore we just state the specification of a general sorting algorithm in Boogie which 
 applies to both quicksort and bucketsort.\\
 
 The signature of our sort procedure looks as follows:
@@ -20,10 +17,9 @@ The signature of our sort procedure looks as follows:
    {}
  \end{verbatim}
 
-The sort procedure sorts a global variable \texttt{a:[int]int} from indices \texttt{lo} to \texttt{hi} (\texttt{hi} inclusive).
+The sort procedure sorts a global variable \texttt{a:[int]int} from indices \texttt{lo} to \texttt{hi} (both, \texttt{lo} and \texttt{hi}, inclusive).
 This global variable is a map which models a one-dimensional array of integers. 
-We decided to specify that the sorting algorithm works on an arbitrary sub-sequence of the array 
-because it results in a more general algorithm and because it makes implementing quicksort easier.
+We decided to specify that the sorting algorithm works on an arbitrary sub-sequence of the array because it results in a more general algorithm and because it makes implementing quicksort's recursivitiy easier.
 The return value of \texttt{xSort} is a map from \texttt{int} to \texttt{int} which represents a permutation on the
 array indices that describes how the elements of the array were swapped by \texttt{xSort}.
 \\
@@ -33,7 +29,7 @@ array indices that describes how the elements of the array were swapped by \text
   requires lo <= hi;
 \end{verbatim}
 
-To specify the entire behavior of the sort procedure, we state the following postconditions.
+To specify the entire behaviour of the sort procedure, we state the following postconditions.
 \begin{itemize}
 \item After the procedure call, the array must be sorted:
   \begin{verbatim}
@@ -76,17 +72,15 @@ than having to prove the existence of one.
 \subsection{Quicksort Implementation}
 
 We implemented the textbook definition of quicksort as described in "Introduction to Algorithms"\cite{Cormen}. 
-Quicksort is implemented in the \texttt{qs} procedure. The pivot element is set to be the right most
-element of the array. 
-First the algorithm partitions the array into a left and right part such that the left part is smaller than or equal to
-the pivot and the right part is greater than the pivot. 
-This partition step is implemented in a separate procedure \texttt{qsPartition}.
+Quicksort is implemented in the \texttt{qs} procedure. The pivot element is set to be the rightmost element of the array.\\
+First the algorithm partitions the array into a left and right part such that the left part is smaller than or equal to the pivot and the right part is greater than the pivot.\\
+This partition step is implemented in a separate procedure \texttt{qsPartition}.\\
 After partitioning, \texttt{qs} is called recursively on the left and the right part of the array. Here
 the fact that we specified the sorting procedures to work on arbitrary parts of the array comes in handy.\\
 
 In addition to the actual sorting, \texttt{qs} and \texttt{qsPartition} both construct a permutation that
-keeps track on how the array elements are swapped. A big part of the implementation consists of code that
-combines the permutations returned by \texttt{qsPartition} and the two recursive calls to \texttt{qs} to a single permutation
+keeps track of how the array's elements are swapped. A big part of the implementation consists of code that
+combines the permutations returned by \texttt{qsPartition} and the two recursive calls to \texttt{qs} into a single permutation
 capturing all swap operations.
 
 \subsection{Bucketsort Implementation}
@@ -94,16 +88,16 @@ capturing all swap operations.
 Bucketsort is implemented in the \texttt{bucketSort} procedure.  
 The procedure divides the array into three buckets with elements in the range of $[-3N, -N)$, $[-N,N)$ and
 $[N,3N]$ respectively. 
-We decided to use these ranges because we know that the procedure will only be called with elements from $[-3N,3N]$.
-These three buckets are then all sorted individually with quicksort. 
-After that, the now sorted buckets are then copied back into the original array yielding a sorted version
+We decided to use these ranges because we know that the procedure will only be called with elements from $[-3N,3N]$ and given no further information about them, we can but optimistically assume they are uniformly distributed over that range.\\
+These three buckets are then each sorted individually using quicksort.\\
+The now sorted buckets are then copied back into the original array yielding a sorted version
 of the original array.
 \\\\
 Just as in quicksort, the bucketsort implementation also has to construct a permutation that reflects
 the swap operations of the algorithm. This was more challenging than in quicksort, because the size of the
 three buckets is not known in advance.
 
-Note that being able to call quicksort with three buckets was not a trivial task because of the limitations
+Note that being able to call quicksort with three buckets was not a trivial task because of some limitations
 of the Boogie language. This is addressed in the next section (\ref{sec:mod_sort}).
 
 \subsection{Implementing modular sorting algorithm}
@@ -142,23 +136,24 @@ implementation with only minor modifications.
 \subsection{Verification}
 
 We managed to verify all our procedures with Boogie. However this was not an easy task. While working 
-with boogie we encountered several difficulties which will be discussed in this section.\\\\
+with boogie we encountered several difficulties which will be discussed in this section.\\
 
-A general problem that we faced in various places was the following. Given that a property could be proven
-to hold over a section of an array after a while loop. Then a second while loop that modifies a different section of the same array
-would erase the previous information about the first section. We solved this problem by always adding all properties that
+A general problem that we faced in various places was the following:\\
+Assume that after a while loop, we have proven a property to hold for a section of an array. A second while loop that modifies a different section of the same array
+would then erase this information about the first section.\\
+We solved this problem by always adding all properties that
 had been previously shown about an array into the loop invariant of each subsequent while loop that would modify 
-said array again. Unfortunately this lead to rather verbose loop invariants which would be 
-repeated in several loops.
-\\\\
-A variant of this problem also occurred while verifying quicksort. Because each recursive call 
-to \texttt{qs} modifies the same global variable \texttt{a\_qs}, all previous information about \texttt{a\_qs} 
+said array again. Unfortunately this lead to rather verbose loop invariants which would be repeated in several loops.\\
+
+A variant of this problem also occurred while verifying quicksort.\\
+Because each recursive call to \texttt{qs} modifies the same global variable \texttt{a\_qs}, all previous information about \texttt{a\_qs} 
 are lost after the procedure call. This was a problem because we would loose the information that the left
 part of the array is sorted after calling quicksort on the right part. 
-This problem was solved by adding the following postcondition to \texttt{qs} and subsequently also \texttt{qsPartition}.
+We solved the issue by adding the following postcondition to \texttt{qs} and subsequently also \texttt{qsPartition}.
 
 \begin{verbatim}
-  ensures (forall i: int :: i < lo || i > hi ==> a_qs[i] == old(a_qs)[i]);
+  ensures (forall i: int :: i < lo || i > hi
+  		==> a_qs[i] == old(a_qs)[i]);
 \end{verbatim}
 
 The postcondition above states that only the elements in the range given by $[lo, hi]$ are modified. Proving this
@@ -173,7 +168,7 @@ source code using comments.\\
 
 The biggest problem we faced was during the verification of bucketsort. There we had to show
 that if a sorted array (a bucket) is copied into another array (the original array to sort), 
-then this part of the array is also sorted. Proving this boiles down to the following lemma:
+then this part of the array is also sorted. Proving this boiled down to the following lemma:
 
 \begin{verbatim}
 procedure lemma1(a : [int]int, b:[int]int, off : int, n : int) 
@@ -211,12 +206,15 @@ By reformulating this problem into a form that doesn't use this offset, Boogie i
 to prove the lemma:
 
 \begin{verbatim}
-procedure lemma2(a : [int]int, b:[int]int, lo : int, hi : int, n : int) 
+procedure lemma2(a:[int]int, b:[int]int, lo:int, hi:int, n:int) 
     requires hi-lo+1==n;
     requires n >= 0;
-    requires (forall k: int :: lo <= k && k <= hi ==> a[k] == b[k-lo]);
-    requires (forall k, l: int :: 0 <= k && k <= l && l < n ==> b[k] <= b[l]);
-    ensures (forall k, l: int :: lo <= k && k <= l && l <= hi ==> a[k] <= a[l]);
+    requires (forall k: int :: lo <= k && k <= hi 
+    	==> a[k] == b[k-lo]);
+    requires (forall k, l: int :: 0 <= k && k <= l && l < n 
+    	==> b[k] <= b[l]);
+    ensures (forall k, l: int :: lo <= k && k <= l && l <= hi 
+    	==> a[k] <= a[l]);
 { }
 \end{verbatim}
 
@@ -229,7 +227,7 @@ a false statement. Boogie would verify the following procedure:
 const N: int;
 axiom 0 <= N;
 procedure gaga()
-  ensures (forall k, l: int :: 0 <= k && k <= l && l < N ==> false); 
+  ensures (forall k,l:int :: 0<=k && k<=l && l < N ==> false); 
 {
   var x:int;
   var i :int;
@@ -241,8 +239,7 @@ procedure gaga()
 }
 \end{verbatim}
 
-This turned out to be a bug which has been fixed in 
-the meantime\footnote{\url{https://github.com/boogie-org/boogie/issues/25}}.\\
+This turned out to be a bug which has since been fixed\footnote{\url{https://github.com/boogie-org/boogie/issues/25}}.\\
 
 The various problems described above made the verification task rather frustrating compared to the
 first part of the project. In section \ref{sec:conclusion} we'll discuss the differences between working with 

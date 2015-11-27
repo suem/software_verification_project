@@ -6,10 +6,11 @@ form of sets, bags or sequences. With Boogie on the other hand, one can only rea
 low level constructs like maps and simple variables.\\
 
 Another difference between Boogie and AutoProof is the fact that it is not possible to modify
-input arguments in aprocedure whereas AutoProof/Eiffel allows this. This makes writing reusable code
+input arguments in a procedure, whereas AutoProof/Eiffel allows this. This makes writing reusable code
 much easier. To get the same effect in Boogie we had to come up with our own scheme to be able to sort arbitrary arrays.\\
 
-In conclusion, we found AutoProof to be a lot more convenient to reason about programs. Specifying and
-verifying a program in Boogie leads to a lot of verbose verification code because only low level constructs 
-can be used to express properties whereas AutoProof already provides a range on convenient higher level constructs. 
-Furthermore Boogie behaves strangely in many situations which can lead to a lot of frustration if one lacks experience.
+In conclusion, we found AutoProof to be a lot more convenient to reason about programs with. Specifying and verifying a program in Boogie leads to a lot of verbose verification code because only low level constructs can be used to express properties whereas AutoProof already provides a range of convenient higher level constructs. 
+Furthermore Boogie behaves strangely in many situations which can lead to a lot of frustration if one lacks experience with the tool.\\
+
+Outside of our project, Boogie's demerit of being low-level can, however, be turned into the advantage of being very adaptive. If we wanted to write a verifier for a language different from Eiffel or Boogie, using Autoproof would force us to translate our program to Eiffel, first. Depending on the language, this may not even be possible because certain constructs are not expressible in Eiffel. Given that Autoproof itself is translating the Eiffel programs passed to it to Boogie\cite{autoproofPaper}, such a restriction is a mere waste of expressiveness.\\
+
