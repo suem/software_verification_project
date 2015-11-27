@@ -1,2 +1,15 @@
 \section{Conclusion}
-TODO
+\label{sec:conclusion}
+The biggest difference between AutoProof and Boogie is the level of abstraction that can be 
+used to express statements. AutoProof offers a rich set of theories to reason about arrays in the
+form of sets, bags or sequences. With Boogie on the other hand, one can only reason about very 
+low level constructs like maps and simple variables.\\
+
+Another difference between Boogie and AutoProof is the fact that it is not possible to modify
+input arguments in aprocedure whereas AutoProof/Eiffel allows this. This makes writing reusable code
+much easier. To get the same effect in Boogie we had to come up with our own scheme to be able to sort arbitrary arrays.\\
+
+In conclusion, we found AutoProof to be a lot more convenient to reason about programs. Specifying and
+verifying a program in Boogie leads to a lot of verbose verification code because only low level constructs 
+can be used to express properties whereas AutoProof already provides a range on convenient higher level constructs. 
+Furthermore Boogie behaves strangely in many situations which can lead to a lot of frustration if one lacks experience.

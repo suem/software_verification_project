@@ -12,7 +12,7 @@ And we will specify its features below in a way such that Autoproof can verify t
 We refer to Appendix(\ref{eiffel_code}) for the complete code that we modify.
 
 \subsection{wipe}
-Wipe(\ref{eiffel_code_wipe}) takes an array of integers and resets all its item to 0 
+Wipe(\ref{eiffel_code_wipe}) takes an array of integers and resets all its item to 0.
 We add a loop invariant
 \begin{eSimple}
 across 1 |..| (k-1) as i all
@@ -26,7 +26,8 @@ x.count = old x.count
 is already maintained by another invariant.   
 
 \subsection{mod\_three}
-Procedure \emph{mod\_three} (\ref{eiffel_code_mod_three}) takes two integer arrays \emph{a,b} of equal length, uses of \emph{wipe} on both and returns \emph{b} with its every third element set to one.
+Procedure \emph{mod\_three} (\ref{eiffel_code_mod_three}) takes two integer arrays \emph{a,b} of equal length, 
+calls \emph{wipe} on both and returns \emph{b} with its every third element set to one.
 
 First, we maintain that the amount of integers in \emph{b} does not change:
 \begin{eSimple}
@@ -36,13 +37,13 @@ This invariant is necessary. Without it, the assignment
 \begin{eSimple}
 b[k] := a[k] + 1
 \end{eSimple}
-may be out of bounds from Autoproof's point of view, because we iterate over the length of \emph{a}, which is specified to be constant and only initially equal to the length of \emph{b}.\\
+may be out of bounds from AutoProof's point of view, because we iterate over the length of \emph{a}, which is specified to be constant and only initially equal to the length of \emph{b}.\\
 
 Then, we need to postulate that each iteration over the loop can by itself change \emph{b}:
 \begin{eSimple}
 modify(b)
 \end{eSimple}
-Omitting this invariant will lead to Autoproof's insisting that \emph{b} has never changed and that any further invariant claiming otherwise couldn't possibly be maintained.\\
+Omitting this invariant will lead to AutoProof's insisting that \emph{b} has never changed and that any further invariant claiming otherwise couldn't possibly be maintained.\\
 
 Having specified that, we can now add an invariant
 \begin{eSimple}
@@ -50,11 +51,11 @@ across 1 |..| (k-1) as i all
 	(i.item \\ 3 = 0) implies
 		b.sequence [i.item] = 1 end
 \end{eSimple}
-which will claim that every third item we already iterated over in a is one in b. The assignment may read
+which will claim that every third item we already iterated over in \emph{a} is one in \emph{b}. The assignment may read
 \begin{eSimple}
 b [k] := a[k] + 1
 \end{eSimple}
-but the postcondition from \emph{wipe(a)} allows Autoproof to deduce the element's being set to one without any further specification of ours.\\
+but the postcondition from \emph{wipe(a)} allows AutoProof to deduce the element's being set to one without any further specification of ours.\\
 
 \subsection{swapper}
 \emph{Swapper}(\ref{eiffel_code_swapper}) relies on \emph{swap}(\ref{eiffel_code_swap}) to reverse \emph{lst} (which is global).\\
@@ -68,12 +69,14 @@ until
 	y <= x
 \end{eSimple}
 
-and after each iteration, x is incremented by one and y is decremented by one. This allows us to use \emph{y > 0} as a way of specifying an invariant that trivially holds before \emph{y := lst.count} has been executed and specifies some useful property afterwards - in our case, we use it to specify that once initialised, both \emph{x} and \emph{y} are within the bounds of \emph{lst}, and therefore satisfy the precondition of \emph{swap}.
+and after each iteration, \emph{x} is incremented by one and \emph{y} is decremented by one. 
+This allows us to use $y > 0$ as a way of specifying an invariant that trivially holds before \emph{y := lst.count} has been executed and specifies some useful property afterwards - in our case, we use it to specify that once initialized, both \emph{x} and \emph{y} are within the bounds of \emph{lst}, and therefore satisfy the precondition of \emph{swap}.
 \begin{eSimple}
 y > 0 implies (1 <= x and x <= lst.count and 1 <= y and y <= lst.count)
 \end{eSimple}
 
-For Autoproof to be able to proof that the swapped list is a permutation of the original list, we need to specify that all items not swapped remained the same. \emph{Swap} itself does provide such a postcondition, however, this is insufficient because the \emph{old lst} \emph{swap}'s postcondition is mentioning is in fact the \emph{lst} at the moment \emph{swapper} is calling \emph{swap}, which changes with each iteration. We must link these two \emph{"olds"} explicitly:
+For AutoProof to be able to proof that the swapped list is a permutation of the original list, we need to specify that all items not swapped remained the same. 
+\emph{Swap} itself does provide such a postcondition, however, this is insufficient because what the \emph{old lst} \emph{swap}'s postcondition is mentioning is in fact the \emph{lst} at the moment \emph{swapper} is calling \emph{swap}, which changes with each iteration. We must link these two \emph{"olds"} explicitly:
 \begin{eSimple}
 across x |..| y as i all lst.sequence[i.item] =
 	lst.sequence.old_[i.item] end
@@ -89,9 +92,9 @@ x > 1 implies across 1 |..| (x-1) as i all lst.sequence[i.item] = lst.sequence.o
 
 x > 1 implies across 1 |..| (x-1) as i all lst.sequence[lst.count-i.item+1] = lst.sequence.old_[i.item] end
 \end{eSimple}
-Where we are again using \emph{x > 1} as a way of saying "x and y have both been initialised". We need to split the postcondition into two parts because the items in-between \emph{x} and \emph{y} have not been swapped yet.\\
+Where we are again using $x > 1$ as a way of saying "x and y have both been initialised". We need to split the postcondition into two parts because the items in-between \emph{x} and \emph{y} have not been swapped yet.\\
 
-However, we are using \emph{lst.count-i.item+1} so that it matches the postcondition and Autoproof cannot proof that just yet because it's never actually using this expression in the loop. What we thus require is another invariant that specifies the index the loop is using to correlate to the arithmetic in the postcondition and the invariants:
+However, we are using \emph{lst.count-i.item+1} so that it matches the postcondition and AutoProof cannot proof that just yet because it's never actually using this expression in the loop. What we thus require is another invariant that specifies the index the loop is using to correlate to the arithmetic in the postcondition and the invariants:
 \begin{eSimple}
 y = lst.count - x + 1
 \end{eSimple}
@@ -124,7 +127,7 @@ from
 until
 	Result or k < 1
 \end{eSimple}
-We first specify \emph{k} to remain within the allowed range of indices for \emph{lst}, using \emph{k > 0} to ignore its value prior to entering the loop and after exiting the loop when \emph{lst} does not contain \emph{v}:
+We first specify \emph{k} to remain within the allowed range of indices for \emph{lst}, using $k > 0$ to ignore its value prior to entering the loop and after exiting the loop when \emph{lst} does not contain \emph{v}:
 \begin{eSimple}
 k > 0 implies (1 <= k and k <= lst.count)
 \end{eSimple}
@@ -161,7 +164,7 @@ from
 until
 	x >= y or not Result
 \end{eSimple}
-We first specify \emph{x} and \emph{y} to remain within the bounds of the array, using \emph{y > 0} to avoid violation on entry.
+We first specify \emph{x} and \emph{y} to remain within the bounds of the array, using $y > 0$ to avoid violation on entry.
 \begin{eSimple}
 y > 0 implies (1 <= x and x <= a.count and 1 <= y and y <= a.count)
 \end{eSimple}
@@ -171,7 +174,7 @@ We then define a different interpretation for \emph{y} to allow its translation 
 y = a.count - x + 1
 \end{eSimple}
 
-\emph{Result} is initialised to \emph{True} and set to false as soon as we encounter a prefix that is not a reversed suffix. We exploit the fact that \emph{x} is incremented with every iteration to express that \emph{Result = True} implies "after at least one iteration" that the prefix iterated over so far is a reversed suffix:
+\emph{Result} is initialized to \emph{True} and set to false as soon as we encounter a prefix that is not a reversed suffix. We exploit the fact that \emph{x} is incremented with every iteration to express that $Result = True$ implies "after at least one iteration" that the prefix iterated over so far is a reversed suffix:
 \begin{eSimple}
 (x > 1 and Result) implies across 1 |..| (x-1) as i all a.sequence[i.item] = a.sequence[a.count-i.item + 1] end
 \end{eSimple}

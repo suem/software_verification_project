@@ -1,14 +1,13 @@
 \section{Boogie}\label{boogie_discussion}
 
 In this part we discuss the second part of the project, implementing and verifying quicksort and bucketsort 
-in Boogie. First we describe how we chose to specify our algorithms e\.g\. how we described the complete behaviour
-of our sorting algorithms. Then we quickly discuss how the two algorithms were implemented followed by an in-depth 
-discussion about the verification task where we describe the varous problems we faced and how we overcame them. Finally
-we compare the task of verifying and specifying in Boogie in contrast to Autoproof.
+in Boogie. First we describe how we specified our algorithms e\.g\. how we described the complete behavior
+of the two sorting algorithms. Then we quickly discuss how the two algorithms were implemented followed by a 
+discussion about the verification task. There we describe the various problems we faced and how we overcame them.
 
 \subsection{Algorithm Specification}
 
-Both quicksort and bucketsort basically share the same specification aside from some minor differences due to 
+Both quicksort and bucketsort share the same specification aside from some minor differences due to 
 implementation details. Therefore we just state the specification of a general sorting algorithm in Boogie which 
 applies to both quicksort and bucketsort.\\
 
@@ -18,21 +17,23 @@ The signature of our sort procedure looks as follows:
   procedure xSort(lo: int, hi: int) returns (perm: [int]int)  
     modifies a;
    ...
+   {}
  \end{verbatim}
 
-The sort procedure sorts a global variable \texttt{a:[int]int} from indices \texttt{lo} to \texttt{hi}.
-This global variable is a map which models a one-dimensional array of integers. We decided from the beginning 
-to sort an arbitrary sub-sequence of the array because it would be useful when implementing quicksort.
-The return value of \texttt{xSort} is map from \texttt{int} to \texttt{int} which is a permutation on the
+The sort procedure sorts a global variable \texttt{a:[int]int} from indices \texttt{lo} to \texttt{hi} (\texttt{hi} inclusive).
+This global variable is a map which models a one-dimensional array of integers. 
+We decided to specify that the sorting algorithm works on an arbitrary sub-sequence of the array 
+because it results in a more general algorithm and because it makes implementing quicksort easier.
+The return value of \texttt{xSort} is a map from \texttt{int} to \texttt{int} which represents a permutation on the
 array indices that describes how the elements of the array were swapped by \texttt{xSort}.
 \\
 
-\texttt{sort} has only one precondition, namely that the input range must not be negative:
+\texttt{xSort} has only one precondition, namely that the input range must not be negative:
 \begin{verbatim}
   requires lo <= hi;
 \end{verbatim}
 
-To specify the entire behaviour of the sort procedure, we state the following postconditions.
+To specify the entire behavior of the sort procedure, we state the following postconditions.
 \begin{itemize}
 \item After the procedure call, the array must be sorted:
   \begin{verbatim}
@@ -41,7 +42,7 @@ To specify the entire behaviour of the sort procedure, we state the following po
   );
 \end{verbatim}
 
-\item The return value must be a valid permutation of the array indices.
+\item The return value must be a valid permutation of the array indices (from \texttt{lo} to \texttt{hi}).
   \begin{verbatim}
   ensures (
     forall i: int :: 
@@ -55,7 +56,7 @@ To specify the entire behaviour of the sort procedure, we state the following po
   );
 \end{verbatim}
 
-\item The final array is a permutation of the input array. Exactly the permuatation that is returned. 
+\item The final array is a permutation of the input array. This permutation is given by the return value \texttt{perm}.
   \begin{verbatim}
   ensures (
     forall i: int :: 
@@ -66,48 +67,54 @@ To specify the entire behaviour of the sort procedure, we state the following po
  
 \end{itemize}
 
-This specification is influenced by the bubblesort example that is 
-given on the Boogie webpage \footnote{\url{http://rise4fun.com/Boogie/Bubble}}. We decided to 
+This specification is based on the bubblesort example that is 
+given on the Boogie web page \footnote{\url{http://rise4fun.com/Boogie/Bubble}}. We decided to 
 copy the approach of using a concrete permutation to state that the final array is a permutation of
-the input array, because we felt that it would be easier to actually construct such a permutation rather
-than having to prove just the existance.
+the input array because we felt that it would be easier to actually construct such a permutation rather
+than having to prove the existence of one.
 
 \subsection{Quicksort Implementation}
 
-We implemented the textbook definition of quicksort as described in "Introduction to Algorithms". 
-Quicksort is implemented by the \texttt{qs} procedure. 
-It first partitions the array into a left and right part such that the left part is smaller than or equal to
-the pivot and the right part is greater than the pivot. The pivot element is always the right most
-element of the array. This partition step is implemented in a separate procedure called \texttt{qsPartition}.
-After partitioning, \texttt{qs} is called recursively on the left and the right part of the array. 
+We implemented the textbook definition of quicksort as described in "Introduction to Algorithms"\cite{Cormen}. 
+Quicksort is implemented in the \texttt{qs} procedure. The pivot element is set to be the right most
+element of the array. 
+First the algorithm partitions the array into a left and right part such that the left part is smaller than or equal to
+the pivot and the right part is greater than the pivot. 
+This partition step is implemented in a separate procedure \texttt{qsPartition}.
+After partitioning, \texttt{qs} is called recursively on the left and the right part of the array. Here
+the fact that we specified the sorting procedures to work on arbitrary parts of the array comes in handy.\\
+
 In addition to the actual sorting, \texttt{qs} and \texttt{qsPartition} both construct a permutation that
-keeps track on how the array elements were swapped. A big part of the implementation consists of code that
+keeps track on how the array elements are swapped. A big part of the implementation consists of code that
 combines the permutations returned by \texttt{qsPartition} and the two recursive calls to \texttt{qs} to a single permutation
-capturing all swap opperations.
+capturing all swap operations.
 
 \subsection{Bucketsort Implementation}
 
 Bucketsort is implemented in the \texttt{bucketSort} procedure.  
-The procedure divides the array into three buckets with elements in the range of $[-3*N)$, $[-N,N)$ and
-$[N,3*N)$ respectively. This is possible because we know that the procedure will only be called with elements in that range.
-The three buckets are then all sorted individually with quicksort. 
-After that, the now sorted buckets are then copied back into the original array.
+The procedure divides the array into three buckets with elements in the range of $[-3N, -N)$, $[-N,N)$ and
+$[N,3N]$ respectively. 
+We decided to use these ranges because we know that the procedure will only be called with elements from $[-3N,3N]$.
+These three buckets are then all sorted individually with quicksort. 
+After that, the now sorted buckets are then copied back into the original array yielding a sorted version
+of the original array.
 \\\\
 Just as in quicksort, the bucketsort implementation also has to construct a permutation that reflects
-the different swap operations. This was more challenging than in quicksort, because the size of the
-three buckets is not known in advance. 
+the swap operations of the algorithm. This was more challenging than in quicksort, because the size of the
+three buckets is not known in advance.
 
-
-Note that being able to call quicksort with three buckets was not a trivial task. 
-The problems are discussed in the next section. 
+Note that being able to call quicksort with three buckets was not a trivial task because of the limitations
+of the Boogie language. This is addressed in the next section (\ref{sec:mod_sort}).
 
 \subsection{Implementing modular sorting algorithm}
+\label{sec:mod_sort}
 
-In Boogie, as opposed to Eiffel/Autoproof, it isn't possible for procedures to modify
-arguments. This is why our sorting algorithm implementations both sort a global variable. 
-In the case of bucketsort however it's necessary to sort three different arrays with the
-same procedure e\.g\. quicksort. To solve this issue, we first modified our quicksort implementation
-to work on a different global variable \texttt{a\_qs} and then added the following procedure:
+In Boogie, as opposed to Eiffel/AutoProof, it is not possible for procedures to modify input
+arguments. This is why our sorting algorithm is specified to work on a global variable. 
+In the case of bucketsort however it is necessary to sort three different arrays with the
+same algorithm (quicksort). This however is not possible because the \texttt{qs} procedure
+can only sort one global variable (\texttt{a}). To solve this issue, we first modified our quicksort implementation
+to work on a different global variable \texttt{a\_qs} and then created the following procedure:
 
 \begin{verbatim}
 procedure quickSort(arr : [int]int, lo : int, hi : int) 
@@ -123,25 +130,30 @@ procedure quickSort(arr : [int]int, lo : int, hi : int)
 The new \texttt{quickSort} has the same specification as \texttt{qs} but instead of sorting a global array,
 it takes an array as argument and returns a sorted copy. This is achieved by using \texttt{a\_qs} as temporary 
 variable to store the input array. Now with this construction it is possible to sort arbitrary arrays using
-our existing quicksort implementation.
+our existing quicksort implementation.\\
 
+An alternative approach would have been to directly modify the \texttt{qs} implementation to take an array as argument
+and return a sorted copy of it. We decided against this solution because it would have required additional code that
+takes care of copying the values from input to output parameters. This would then add additional complexity 
+to the verification task of the project. Our solution has the advantage that it allowed us to reuse our existing quicksort
+implementation with only minor modifications.
 
 
 \subsection{Verification}
 
 We managed to verify all our procedures with Boogie. However this was not an easy task. While working 
-with boogie we encounterd several difficulties which will be discussed in this section.\\\\
+with boogie we encountered several difficulties which will be discussed in this section.\\\\
 
 A general problem that we faced in various places was the following. Given that a property could be proven
-to hold over a section of an array. Then a second while loop that modifies a different section of the same array
+to hold over a section of an array after a while loop. Then a second while loop that modifies a different section of the same array
 would erase the previous information about the first section. We solved this problem by always adding all properties that
 had been previously shown about an array into the loop invariant of each subsequent while loop that would modify 
 said array again. Unfortunately this lead to rather verbose loop invariants which would be 
 repeated in several loops.
 \\\\
-A variant of this problem also occured while verifying quicksort. Because each recursive call 
-to \texttt{qs} modifies the same global variable \texttt{a\+qs}, all previous information about \texttt{a\+qs} 
-are lost after ther procedure call. This was a problem because we would loose the information that the left
+A variant of this problem also occurred while verifying quicksort. Because each recursive call 
+to \texttt{qs} modifies the same global variable \texttt{a\_qs}, all previous information about \texttt{a\_qs} 
+are lost after the procedure call. This was a problem because we would loose the information that the left
 part of the array is sorted after calling quicksort on the right part. 
 This problem was solved by adding the following postcondition to \texttt{qs} and subsequently also \texttt{qsPartition}.
 
@@ -150,20 +162,21 @@ This problem was solved by adding the following postcondition to \texttt{qs} and
 \end{verbatim}
 
 The postcondition above states that only the elements in the range given by $[lo, hi]$ are modified. Proving this
-propery was straightforward and it resolved the problem that was described above.\\
+property was straightforward and it resolved the problem that was described above. Using this information, 
+Boogie was able to infer that all previous properties about different parts of the array still hold.\\
 
-Another big problem was the fact that the Boogie verifyier would not always terminate after a 
-sensible amount of time. Furthermore, having the verifyier terminate could be influenced by
+Another big problem was the fact that the Boogie verifier would not always terminate after a 
+sensible amount of time. Furthermore, having the verifier terminate could be influenced by
 adding certain assertions to the code. In fact, our final verification of quicksort requires
-two assertions to be present for the verifyer to terminate. We highlighted these assertions in our
+two assertions to be present for the verifier to terminate. We highlighted these assertions in our
 source code using comments.\\
 
 The biggest problem we faced was during the verification of bucketsort. There we had to show
 that if a sorted array (a bucket) is copied into another array (the original array to sort), 
-then this part of the array is also sorted. Proving this boiled down to the following lemma:
+then this part of the array is also sorted. Proving this boiles down to the following lemma:
 
 \begin{verbatim}
-procedure lemma_absurde(a : [int]int, b:[int]int, off : int, n : int) 
+procedure lemma1(a : [int]int, b:[int]int, off : int, n : int) 
     requires off >= 0;
     requires n >= 0;
     requires (
@@ -186,7 +199,7 @@ procedure lemma_absurde(a : [int]int, b:[int]int, off : int, n : int)
 }
 \end{verbatim}
 
-\texttt{a} is the original array and \texttt{b} is the bucket array. The lemma states that 
+Here \texttt{a} is the original array and \texttt{b} is the bucket array. The lemma states that 
 if the bucket \texttt{b} is sorted and if the array \texttt{a} is equal to \texttt{b} in
 the index range from \texttt{off} to \texttt{off+n} then \texttt{a} is also sorted in this range.
 However boogie is not able to prove this lemma not even by assuming the postcondition in the
@@ -194,11 +207,11 @@ procedure body.\\
 
 In the end we figured out that the problem came from the way the array \texttt{a} was indexed.
 The lemma above uses a constant offset \texttt{off} to address a certain part in \texttt{a}. 
-By reformulationg this problem into a form that doesn't use this offset, Boogie is able
+By reformulating this problem into a form that doesn't use this offset, Boogie is able
 to prove the lemma:
 
 \begin{verbatim}
-procedure lemma(a : [int]int, b:[int]int, lo : int, hi : int, n : int) 
+procedure lemma2(a : [int]int, b:[int]int, lo : int, hi : int, n : int) 
     requires hi-lo+1==n;
     requires n >= 0;
     requires (forall k: int :: lo <= k && k <= hi ==> a[k] == b[k-lo]);
@@ -207,7 +220,8 @@ procedure lemma(a : [int]int, b:[int]int, lo : int, hi : int, n : int)
 { }
 \end{verbatim}
 
-Figuring out this trick took us a long. 
+Figuring out this trick took us a long time.\\
+
 Another problem we faced is the fact that Boogie is not always correct. We were able to have Boogie prove 
 a false statement. Boogie would verify the following procedure:
 
@@ -228,23 +242,10 @@ procedure gaga()
 \end{verbatim}
 
 This turned out to be a bug which has been fixed in 
-the meantime\footnote{\url{https://github.com/boogie-org/boogie/issues/25}}.
+the meantime\footnote{\url{https://github.com/boogie-org/boogie/issues/25}}.\\
 
 The various problems described above made the verification task rather frustrating compared to the
-first part of the project. In the next section we'll contrast the differences between AutoProof and Boogie.
+first part of the project. In section \ref{sec:conclusion} we'll discuss the differences between working with 
+AutoProof and Boogie.
 
-\subsection{Boogie vs. Autoproof}
-The biggest difference between AutoProof and Boogie is the level of abstraction that can be 
-used to express statements. AutoProof offers a rich set of theories to reason about arrays in the
-form of sets, bags or sequences. With Boogie on the other hand, one can only reason about very 
-low level constructs like maps.\\
-
-Another difference between Boogie and AutoProof is the fact that it's not possible to modify
-arguments to a procedure whereas AutoProof e\.g\. Eiffel allows this. As consequence we had to come up
-with our own scheme to be able to sort arbitrary arrays.\\
-
-In conclusion, we AutoProof to be a lot more conventient to reason about programs. Specifying and
-verifying a program in Boogie leads to a lot of verbose verification code because only low level constructs 
-can be used to express properties whereas AutoProof already provides a range on conventient higher level constructs. 
-Furthermore Boogie behaves strangely in many situations which can lead to a lot of frustration if one lacks experience.
 
